@@ -1,0 +1,400 @@
+/* Custom extensions to Tufte CSS */
+
+/* Import Source Code Pro for monospace */
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600&display=swap');
+
+/* Theme toggle support - override prefers-color-scheme with data attribute
+   Using Solarized palette for harmonious light/dark themes.
+   Solarized uses symmetric CIELAB lightness - both modes have equal contrast.
+   See: https://ethanschoonover.com/solarized/ */
+:root {
+    /* Solarized Light background with higher contrast text */
+    --bg-color: #fdf6e3;
+    --text-color: #073642;
+    --text-muted: #586e75;
+    --link-color: #073642;
+    --code-bg: #eee8d5;
+    --border-color: #d3cbb7;
+    --selection-bg: #eee8d5;
+}
+
+[data-theme="dark"] {
+    /* Solarized Dark background with higher contrast text */
+    --bg-color: #002b36;
+    --text-color: #eee8d5;
+    --text-muted: #93a1a1;
+    --link-color: #eee8d5;
+    --code-bg: #073642;
+    --border-color: #094352;
+    --selection-bg: #073642;
+}
+
+/* Scale down to ~80% of Tufte's default sizing.
+   Tufte uses 15px base font. This compacts the layout to fit ToC + content + sidenotes. */
+html {
+    font-size: 12px;
+}
+
+/* Prevent horizontal overflow from sidenotes */
+body {
+    overflow-x: hidden;
+}
+
+/* Apply theme colors */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Override the built-in prefers-color-scheme when theme is manually set */
+[data-theme="light"] body,
+[data-theme="dark"] body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+a:link, a:visited {
+    color: var(--link-color);
+}
+
+hr {
+    border-top-color: var(--border-color);
+}
+
+/* Monospace font for code, diagrams, etc. */
+code, pre, pre > code, .monospace {
+    font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+code, pre > code {
+    background-color: var(--code-bg);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.8em;
+}
+
+pre > code {
+    padding: 1em;
+    display: block;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+::selection {
+    background: var(--selection-bg);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+.theme-toggle .sun { display: none; }
+.theme-toggle .moon { display: block; }
+
+[data-theme="dark"] .theme-toggle .sun { display: block; }
+[data-theme="dark"] .theme-toggle .moon { display: none; }
+
+/* Wider main content - override Tufte's 55% to ~75% (36% wider)
+   This gives more room to the main text and less to margin notes */
+section > p,
+section > footer,
+section > table {
+    width: 75%;
+}
+
+section > dl,
+section > ol,
+section > ul {
+    width: 70%;
+    -webkit-padding-start: 5%;
+}
+
+blockquote p,
+blockquote footer {
+    width: 75%;
+}
+
+figure {
+    max-width: 75%;
+}
+
+hr {
+    width: 75%;
+}
+
+/* Adjust sidenote positioning - keep them from overflowing viewport */
+.sidenote,
+.marginnote {
+    width: 40%;
+    margin-right: -45%;
+    max-width: 300px;
+}
+
+/* Index page styles */
+.post-list {
+    list-style: none;
+    padding: 0;
+    width: 55%;
+}
+
+.post-item {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.post-item:last-child {
+    border-bottom: none;
+}
+
+.post-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.3rem;
+}
+
+.post-title a {
+    text-decoration: none;
+}
+
+.post-title a:hover {
+    text-decoration: underline;
+}
+
+.post-meta {
+    font-size: 1rem;
+    color: var(--text-muted);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.post-date {
+    color: var(--text-muted);
+}
+
+.post-updated {
+    color: var(--text-muted);
+}
+
+.post-excerpt {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+/* Header navigation */
+.site-header {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-color);
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    z-index: 100;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.site-title {
+    font-size: 1.4rem;
+    font-variant: small-caps;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    margin-left: auto;
+}
+
+.nav-links a {
+    font-size: 1.1rem;
+    text-decoration: none;
+    color: var(--text-muted);
+}
+
+.nav-links a:hover {
+    color: var(--text-color);
+}
+
+/* Back link on post pages */
+.back-link {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    display: block;
+}
+
+/* Table styles */
+table {
+    width: auto;
+    margin: 1.5rem 0;
+    border-collapse: collapse;
+    font-size: 1rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Table of Contents sidebar - understated, discrete navigation aid
+   Base font is 15px (Tufte CSS). ToC should be meaningfully smaller.
+
+   Vertical alignment: ToC top should align with post title (h1).
+   The title appears quite far down the page due to header + margins. */
+.toc-sidebar {
+    position: fixed;
+    left: 0;
+    top: 16rem;
+    width: 280px;
+    max-height: calc(100vh - 17rem);
+    overflow-y: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    display: none; /* Hidden by default, shown on wide screens */
+}
+
+.toc {
+    padding: 0;
+}
+
+.toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc-list li {
+    margin: 0;
+    padding: 0;
+}
+
+.toc-list a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-left: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    line-height: 1.4;
+}
+
+.toc-list a:hover {
+    color: var(--text-color);
+}
+
+/* h2 items: section headers - prominent, with space above to create groups */
+.toc-list .toc-h2 {
+    margin-top: 0.75rem;
+}
+
+.toc-list .toc-h2:first-child {
+    margin-top: 0;
+}
+
+.toc-list .toc-h2 a {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0.2rem 0;
+    padding-left: 0.5rem;
+}
+
+/* h3 items: subsections - smaller, indented, lighter */
+.toc-list .toc-h3 a {
+    font-size: 10px;
+    font-weight: 400;
+    padding: 0.15rem 0;
+    padding-left: 1.25rem;
+    color: var(--text-muted);
+    opacity: 0.85;
+}
+
+.toc-list a.active {
+    color: var(--text-color);
+    border-left-color: var(--text-color);
+}
+
+/* Show ToC on wide screens with guaranteed no-overlap layout.
+
+   Tufte CSS sets: body { width: 87.5%; padding-left: 12.5%; max-width: 1400px; margin: auto }
+   This centering fights with a fixed left sidebar. Solution: at wide viewports,
+   override Tufte's centering and use a two-column layout where:
+   - Left 280px: ToC (fixed position)
+   - Right: content (with left margin to clear ToC)
+
+   Breakpoint: 1440px works with the scaled-down font size (12px) */
+@media (min-width: 1440px) {
+    /* Override Tufte's centering - use full width with explicit left margin */
+    body {
+        width: 100%;
+        max-width: none;
+        padding-left: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .toc-sidebar {
+        display: block;
+        left: 1rem;
+        width: 260px;
+    }
+
+    /* All direct body children get pushed right, clearing the ToC completely.
+       300px = ToC width (260px) + left position (1rem/16px) + gap (24px) */
+    body > header,
+    body > article,
+    body > aside:not(.toc-sidebar) {
+        margin-left: 300px;
+        margin-right: 2rem;
+        max-width: 1000px;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 760px) {
+    .post-list {
+        width: 100%;
+    }
+
+    .theme-toggle {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+}

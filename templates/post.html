@@ -1,0 +1,19 @@
+{{#has_toc}}
+<aside class="toc-sidebar">
+    {{toc}}
+</aside>
+{{/has_toc}}
+<article{{#has_toc}} class="has-toc"{{/has_toc}}>
+    <h1>{{title}}</h1>
+    {{#subtitle}}<p class="subtitle">{{subtitle}}</p>{{/subtitle}}
+    <p class="post-meta">
+        <span class="post-date">Published {{published_date}}</span>
+        {{#was_updated}}<span class="post-updated"> · Updated {{updated_date}}</span>{{/was_updated}}
+    </p>
+    <section>
+        {{body}}
+    </section>
+</article>
+{{#has_toc}}
+<script src="{{root}}static/js/toc.js"></script>
+{{/has_toc}}
