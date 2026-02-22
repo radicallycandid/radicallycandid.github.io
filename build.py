@@ -108,27 +108,27 @@ PT_MONTHS = {
 # Inline SVG flags for language selector (simplified circular flags)
 LANG_FLAGS = {
     "en": (
-        '<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">'
-        '<clipPath id="fc"><circle cx="12" cy="12" r="11"/></clipPath>'
+        '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
+        '<clipPath id="fc"><circle cx="50" cy="50" r="50"/></clipPath>'
         '<g clip-path="url(#fc)">'
-        '<rect x="0" y="0" width="24" height="24" fill="#bf0a30"/>'
-        '<rect x="0" y="2" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="5.6" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="9.2" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="12.8" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="16.4" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="20" width="24" height="1.8" fill="#fff"/>'
-        '<rect x="0" y="0" width="10" height="13" fill="#002868"/>'
+        '<rect width="100" height="100" fill="#bf0a30"/>'
+        '<rect y="8" width="100" height="7.7" fill="#fff"/>'
+        '<rect y="23" width="100" height="7.7" fill="#fff"/>'
+        '<rect y="38" width="100" height="7.7" fill="#fff"/>'
+        '<rect y="54" width="100" height="7.7" fill="#fff"/>'
+        '<rect y="69" width="100" height="7.7" fill="#fff"/>'
+        '<rect y="84" width="100" height="7.7" fill="#fff"/>'
+        '<rect width="42" height="54" fill="#002868"/>'
         '</g></svg>'
     ),
     "pt": (
-        '<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">'
-        '<clipPath id="fc"><circle cx="12" cy="12" r="11"/></clipPath>'
+        '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
+        '<clipPath id="fc"><circle cx="50" cy="50" r="50"/></clipPath>'
         '<g clip-path="url(#fc)">'
-        '<rect x="0" y="0" width="24" height="24" fill="#009c3b"/>'
-        '<polygon points="2,12 12,3 22,12 12,21" fill="#ffdf00"/>'
-        '<circle cx="12" cy="12" r="4.5" fill="#002776"/>'
-        '<circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="0.4"/>'
+        '<rect width="100" height="100" fill="#009c3b"/>'
+        '<polygon points="5,50 50,10 95,50 50,90" fill="#ffdf00"/>'
+        '<circle cx="50" cy="50" r="20" fill="#002776"/>'
+        '<circle cx="50" cy="50" r="17" fill="none" stroke="#fff" stroke-width="1.5"/>'
         '</g></svg>'
     ),
 }
