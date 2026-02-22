@@ -29,10 +29,10 @@
     --selection-bg: #073642;
 }
 
-/* Scale down to ~80% of Tufte's default sizing.
-   Tufte uses 15px base font. This compacts the layout to fit ToC + content + sidenotes. */
+/* Use Tufte's default 15px base font.
+   The 12px scaling was for knowledge-base 3-column layouts; a blog doesn't need it. */
 html {
-    font-size: 12px;
+    font-size: 15px;
 }
 
 /* Prevent horizontal overflow from sidenotes */
@@ -86,11 +86,9 @@ pre > code {
     background: var(--selection-bg);
 }
 
-/* Theme toggle button */
+/* Theme toggle button - lives inside .site-nav, aligned by flexbox */
 .theme-toggle {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
+    position: static;
     background: var(--code-bg);
     border: 1px solid var(--border-color);
     border-radius: 50%;
@@ -102,7 +100,7 @@ pre > code {
     justify-content: center;
     font-size: 1.2rem;
     transition: all 0.3s ease;
-    z-index: 1000;
+    flex-shrink: 0;
 }
 
 .theme-toggle:hover {
