@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,18 +8,21 @@
     <meta property="og:title" content="{{title}} - Vitor Margato">
     <meta property="og:description" content="{{description}}">
     <meta property="og:type" content="{{og_type}}">
-    <link rel="alternate" type="application/atom+xml" title="Feed" href="{{root}}feed.xml">
+    {{#has_alternate}}<link rel="alternate" hreflang="{{other_lang}}" href="{{other_lang_url}}">{{/has_alternate}}
+    <link rel="alternate" type="application/atom+xml" title="Feed" href="{{root}}{{lang}}/feed.xml">
     <link rel="stylesheet" href="{{root}}static/css/tufte.css">
     <link rel="stylesheet" href="{{root}}static/css/custom.css">
     <script src="{{root}}static/js/theme.js"></script>
+    <script src="{{root}}static/js/lang.js"></script>
 </head>
 <body>
     <header class="site-header">
         <nav class="site-nav">
-            <a href="{{root}}index.html" class="site-title">Vitor Margato</a>
+            <a href="{{home_url}}" class="site-title">Vitor Margato</a>
             <div class="nav-links">
-                <a href="{{root}}about.html">About</a>
+                <a href="{{about_url}}">{{about_label}}</a>
             </div>
+            {{#has_alternate}}<a href="{{other_lang_url}}" class="lang-toggle" aria-label="Switch language">{{lang_flag}}</a>{{/has_alternate}}
         </nav>
     </header>
     {{content}}

@@ -7,8 +7,8 @@
     <h1>{{title}}</h1>
     {{#subtitle}}<p class="subtitle">{{subtitle}}</p>{{/subtitle}}
     <p class="post-meta">
-        <span class="post-date">Published {{published_date}}</span>
-        {{#was_updated}}<span class="post-updated"> · Updated {{updated_date}}</span>{{/was_updated}}
+        <span class="post-date">{{published_label}} {{published_date}}</span>
+        {{#was_updated}}<span class="post-updated"> · {{updated_label}} {{updated_date}}</span>{{/was_updated}}
     </p>
     <section>
         {{body}}

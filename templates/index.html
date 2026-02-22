@@ -6,7 +6,7 @@
             <li class="post-item">
                 <h2 class="post-title"><a href="{{url}}">{{title}}</a></h2>
                 <span class="post-meta">
-                    <span class="post-date">{{published_date_formatted}}</span>{{#was_updated}}<span class="post-updated"> · Updated {{updated_date_formatted}}</span>{{/was_updated}}
+                    <span class="post-date">{{published_date_formatted}}</span>{{#was_updated}}<span class="post-updated"> · {{updated_label}} {{updated_date_formatted}}</span>{{/was_updated}}
                 </span>
                 {{#excerpt}}<p class="post-excerpt">{{excerpt}}</p>{{/excerpt}}
             </li>

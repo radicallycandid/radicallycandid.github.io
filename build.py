@@ -71,6 +71,68 @@ STATIC_DIR = ROOT_DIR / "static"
 SITE_TITLE = "Vitor Margato"
 SITE_URL = "https://vmargato.com"
 
+# Internationalization
+LANGUAGES = ["en", "pt"]
+DEFAULT_LANG = "en"
+
+I18N = {
+    "en": {
+        "about_label": "About",
+        "published_label": "Published",
+        "updated_label": "Updated",
+        "site_description": f"Personal site of {SITE_TITLE}",
+    },
+    "pt": {
+        "about_label": "Sobre",
+        "published_label": "Publicado",
+        "updated_label": "Atualizado",
+        "site_description": f"Site pessoal de {SITE_TITLE}",
+    },
+}
+
+PT_MONTHS = {
+    "January": "janeiro",
+    "February": "fevereiro",
+    "March": "março",
+    "April": "abril",
+    "May": "maio",
+    "June": "junho",
+    "July": "julho",
+    "August": "agosto",
+    "September": "setembro",
+    "October": "outubro",
+    "November": "novembro",
+    "December": "dezembro",
+}
+
+# Inline SVG flags for language selector (simplified circular flags)
+LANG_FLAGS = {
+    "en": (
+        '<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">'
+        '<clipPath id="fc"><circle cx="12" cy="12" r="11"/></clipPath>'
+        '<g clip-path="url(#fc)">'
+        '<rect x="0" y="0" width="24" height="24" fill="#bf0a30"/>'
+        '<rect x="0" y="2" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="5.6" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="9.2" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="12.8" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="16.4" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="20" width="24" height="1.8" fill="#fff"/>'
+        '<rect x="0" y="0" width="10" height="13" fill="#002868"/>'
+        '</g></svg>'
+    ),
+    "pt": (
+        '<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">'
+        '<clipPath id="fc"><circle cx="12" cy="12" r="11"/></clipPath>'
+        '<g clip-path="url(#fc)">'
+        '<rect x="0" y="0" width="24" height="24" fill="#009c3b"/>'
+        '<polygon points="2,12 12,3 22,12 12,21" fill="#ffdf00"/>'
+        '<circle cx="12" cy="12" r="4.5" fill="#002776"/>'
+        '<circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="0.4"/>'
+        '</g></svg>'
+    ),
+}
+
 # Minimum number of headings required to show table of contents
 MIN_HEADINGS_FOR_TOC = 3
 
@@ -616,21 +678,53 @@ def render_template(template_name: str, context: dict[str, object]) -> str:
 # =============================================================================
 
 
-def format_date(date_str: str) -> str:
+def format_date(date_str: str, lang: str = "en") -> str:
     """
     Format a date string to human-readable format.
 
     Args:
         date_str: Date in YYYY-MM-DD format.
+        lang: Language code ("en" or "pt").
 
     Returns:
-        Formatted date string (e.g., "January 10, 2026").
+        Formatted date string (e.g., "January 10, 2026" or "10 de janeiro de 2026").
     """
     try:
         dt = datetime.strptime(date_str, DATE_FORMAT_INPUT)
+        if lang == "pt":
+            month_en = dt.strftime("%B")
+            month_pt = PT_MONTHS.get(month_en, month_en)
+            return f"{dt.day} de {month_pt} de {dt.year}"
         return dt.strftime(DATE_FORMAT_OUTPUT)
     except ValueError:
         return date_str
+
+
+def get_other_lang(lang: str) -> str:
+    """Return the alternate language code."""
+    return "en" if lang == "pt" else "pt"
+
+
+def find_content_pairs(content_dir: Path) -> dict[str, dict[str, Path]]:
+    """
+    Find content files across languages and pair them by slug.
+
+    Args:
+        content_dir: Base content directory (e.g., POSTS_DIR or PAGES_DIR).
+
+    Returns:
+        Dict mapping slug to {lang: Path}, e.g. {"hello-world": {"en": Path, "pt": Path}}.
+    """
+    pairs: dict[str, dict[str, Path]] = {}
+    for lang in LANGUAGES:
+        lang_dir = content_dir / lang
+        if lang_dir.exists():
+            for md in sorted(lang_dir.glob("*.md")):
+                slug = md.stem
+                if slug not in pairs:
+                    pairs[slug] = {}
+                pairs[slug][lang] = md
+    return pairs
 
 
 # =============================================================================
@@ -638,12 +732,19 @@ def format_date(date_str: str) -> str:
 # =============================================================================
 
 
-def build_post(md_path: Path, warnings: list[str] | None = None) -> dict[str, object]:
+def build_post(
+    md_path: Path,
+    lang: str,
+    has_alternate: bool = False,
+    warnings: list[str] | None = None,
+) -> dict[str, object]:
     """
     Build a single post and return its metadata.
 
     Args:
         md_path: Path to markdown source file.
+        lang: Language code ("en" or "pt").
+        has_alternate: Whether an alternate language version exists.
         warnings: Optional list to collect validation warnings.
 
     Returns:
@@ -685,19 +786,26 @@ def build_post(md_path: Path, warnings: list[str] | None = None) -> dict[str, ob
     toc_html = generate_toc_html(headings)
     has_toc = len(headings) >= MIN_HEADINGS_FOR_TOC
 
+    # i18n
+    strings = I18N[lang]
+    other = get_other_lang(lang)
+    output_name = md_path.stem + ".html"
+
     # Render templates
     post_content = render_template(
         "post.html",
         {
             "title": title,
             "subtitle": subtitle,
-            "published_date": format_date(published_date),
-            "updated_date": format_date(updated_date) if was_updated else "",
+            "published_date": format_date(published_date, lang),
+            "updated_date": format_date(updated_date, lang) if was_updated else "",
             "was_updated": was_updated,
             "body": body_html,
             "toc": toc_html,
             "has_toc": has_toc,
-            "root": "../",
+            "root": "../../",
+            "published_label": strings["published_label"],
+            "updated_label": strings["updated_label"],
         },
     )
 
@@ -708,13 +816,20 @@ def build_post(md_path: Path, warnings: list[str] | None = None) -> dict[str, ob
             "content": post_content,
             "description": excerpt,
             "og_type": "article",
-            "root": "../",
+            "root": "../../",
+            "lang": lang,
+            "other_lang": other,
+            "has_alternate": has_alternate,
+            "other_lang_url": f"../../{other}/posts/{output_name}",
+            "lang_flag": LANG_FLAGS[other],
+            "about_label": strings["about_label"],
+            "about_url": f"../../{lang}/about.html",
+            "home_url": f"../../{lang}/index.html",
         },
     )
 
     # Write output
-    output_name = md_path.stem + ".html"
-    output_path = OUTPUT_DIR / "posts" / output_name
+    output_path = OUTPUT_DIR / lang / "posts" / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(full_html)
 
@@ -723,9 +838,9 @@ def build_post(md_path: Path, warnings: list[str] | None = None) -> dict[str, ob
     return {
         "title": title,
         "published_date": published_date,
-        "published_date_formatted": format_date(published_date),
+        "published_date_formatted": format_date(published_date, lang),
         "updated_date": updated_date,
-        "updated_date_formatted": format_date(updated_date),
+        "updated_date_formatted": format_date(updated_date, lang),
         "was_updated": was_updated,
         "excerpt": excerpt,
         "url": f"posts/{output_name}",
@@ -733,14 +848,22 @@ def build_post(md_path: Path, warnings: list[str] | None = None) -> dict[str, ob
     }
 
 
-def build_index(posts: list[dict[str, object]]) -> None:
+def build_index(posts: list[dict[str, object]], lang: str) -> None:
     """
-    Build the index page.
+    Build the index page for a given language.
 
     Args:
         posts: List of post metadata dictionaries.
+        lang: Language code ("en" or "pt").
     """
+    strings = I18N[lang]
+    other = get_other_lang(lang)
+
     posts = sorted(posts, key=lambda p: str(p["updated_date"]), reverse=True)
+
+    # Add translated updated label to each post item for the template loop
+    for post in posts:
+        post["updated_label"] = strings["updated_label"]
 
     index_content = render_template("index.html", {"posts": posts})
     full_html = render_template(
@@ -748,26 +871,41 @@ def build_index(posts: list[dict[str, object]]) -> None:
         {
             "title": "Home",
             "content": index_content,
-            "description": f"Personal site of {SITE_TITLE}",
+            "description": strings["site_description"],
             "og_type": "website",
-            "root": "",
+            "root": "../",
+            "lang": lang,
+            "other_lang": other,
+            "has_alternate": True,
+            "other_lang_url": f"../{other}/index.html",
+            "lang_flag": LANG_FLAGS[other],
+            "about_label": strings["about_label"],
+            "about_url": f"../{lang}/about.html",
+            "home_url": f"../{lang}/index.html",
         },
     )
 
-    output_path = OUTPUT_DIR / "index.html"
+    output_path = OUTPUT_DIR / lang / "index.html"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(full_html)
     print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
 
 
-def build_page(md_path: Path) -> None:
+def build_page(
+    md_path: Path,
+    lang: str,
+    has_alternate: bool = False,
+) -> None:
     """
     Build a single standalone page (e.g. About).
 
     Pages are simpler than posts: no date required, no listing.
-    Output goes to the site root (output/slug.html).
+    Output goes to output/{lang}/slug.html.
 
     Args:
         md_path: Path to markdown source file.
+        lang: Language code ("en" or "pt").
+        has_alternate: Whether an alternate language version exists.
     """
     try:
         content = md_path.read_text()
@@ -784,6 +922,10 @@ def build_page(md_path: Path) -> None:
     toc_html = generate_toc_html(headings)
     has_toc = len(headings) >= MIN_HEADINGS_FOR_TOC
 
+    strings = I18N[lang]
+    other = get_other_lang(lang)
+    output_name = md_path.stem + ".html"
+
     page_content = render_template(
         "page.html",
         {
@@ -792,7 +934,7 @@ def build_page(md_path: Path) -> None:
             "body": body_html,
             "toc": toc_html,
             "has_toc": has_toc,
-            "root": "",
+            "root": "../",
         },
     )
 
@@ -803,21 +945,31 @@ def build_page(md_path: Path) -> None:
             "content": page_content,
             "description": description,
             "og_type": "website",
-            "root": "",
+            "root": "../",
+            "lang": lang,
+            "other_lang": other,
+            "has_alternate": has_alternate,
+            "other_lang_url": f"../{other}/{output_name}",
+            "lang_flag": LANG_FLAGS[other],
+            "about_label": strings["about_label"],
+            "about_url": f"../{lang}/about.html",
+            "home_url": f"../{lang}/index.html",
         },
     )
 
-    output_path = OUTPUT_DIR / (md_path.stem + ".html")
+    output_path = OUTPUT_DIR / lang / (md_path.stem + ".html")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(full_html)
     print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
 
 
-def build_feed(posts: list[dict[str, object]]) -> None:
+def build_feed(posts: list[dict[str, object]], lang: str) -> None:
     """
     Generate an Atom feed from published posts.
 
     Args:
         posts: List of post metadata dictionaries.
+        lang: Language code ("en" or "pt").
     """
     posts = sorted(posts, key=lambda p: str(p["published_date"]), reverse=True)
 
@@ -826,8 +978,8 @@ def build_feed(posts: list[dict[str, object]]) -> None:
         entries.append(
             f"  <entry>\n"
             f"    <title>{post['title']}</title>\n"
-            f"    <link href=\"{SITE_URL}/{post['url']}\"/>\n"
-            f"    <id>{SITE_URL}/{post['url']}</id>\n"
+            f"    <link href=\"{SITE_URL}/{lang}/{post['url']}\"/>\n"
+            f"    <id>{SITE_URL}/{lang}/{post['url']}</id>\n"
             f"    <updated>{post['published_date']}T00:00:00Z</updated>\n"
             f"    <summary>{post.get('excerpt', '')}</summary>\n"
             f"  </entry>"
@@ -836,12 +988,12 @@ def build_feed(posts: list[dict[str, object]]) -> None:
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
     feed = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
-        '<feed xmlns="http://www.w3.org/2005/Atom">\n'
+        f'<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="{lang}">\n'
         f"  <title>{SITE_TITLE}</title>\n"
-        f'  <link href="{SITE_URL}/feed.xml" rel="self"/>\n'
-        f'  <link href="{SITE_URL}/"/>\n'
+        f'  <link href="{SITE_URL}/{lang}/feed.xml" rel="self"/>\n'
+        f'  <link href="{SITE_URL}/{lang}/"/>\n'
         f"  <updated>{now}</updated>\n"
-        f"  <id>{SITE_URL}/</id>\n"
+        f"  <id>{SITE_URL}/{lang}/</id>\n"
         f"  <author>\n"
         f"    <name>{SITE_TITLE}</name>\n"
         f"  </author>\n"
@@ -849,7 +1001,8 @@ def build_feed(posts: list[dict[str, object]]) -> None:
         "</feed>\n"
     )
 
-    output_path = OUTPUT_DIR / "feed.xml"
+    output_path = OUTPUT_DIR / lang / "feed.xml"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(feed)
     print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
 
@@ -863,6 +1016,44 @@ def copy_static() -> None:
     print("  Copied: static/")
 
 
+def build_root_redirect() -> None:
+    """
+    Build the root index.html that redirects to the default language.
+
+    Checks localStorage for explicit preference, then navigator.language,
+    then falls back to DEFAULT_LANG.
+    """
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="alternate" hreflang="en" href="{SITE_URL}/en/index.html">
+    <link rel="alternate" hreflang="pt" href="{SITE_URL}/pt/index.html">
+    <link rel="alternate" hreflang="x-default" href="{SITE_URL}/{DEFAULT_LANG}/index.html">
+    <script>
+        (function() {{
+            var pref = localStorage.getItem('lang-preference');
+            if (pref && (pref === 'en' || pref === 'pt')) {{
+                window.location.replace('/' + pref + '/index.html');
+                return;
+            }}
+            var lang = (navigator.language || '').toLowerCase();
+            if (lang.startsWith('pt')) {{
+                window.location.replace('/pt/index.html');
+            }} else {{
+                window.location.replace('/{DEFAULT_LANG}/index.html');
+            }}
+        }})();
+    </script>
+    <meta http-equiv="refresh" content="0;url=/{DEFAULT_LANG}/index.html">
+</head>
+<body></body>
+</html>"""
+    output_path = OUTPUT_DIR / "index.html"
+    output_path.write_text(html)
+    print(f"  Built: {output_path.relative_to(ROOT_DIR)} (redirect)")
+
+
 def clean() -> None:
     """Remove the output directory."""
     if OUTPUT_DIR.exists():
@@ -874,7 +1065,7 @@ def clean() -> None:
 
 def build() -> bool:
     """
-    Build the entire site.
+    Build the entire site in all configured languages.
 
     Returns:
         True if build succeeded, False if there were errors.
@@ -886,10 +1077,6 @@ def build() -> bool:
     errors: list[str] = []
 
     # Validate required directories
-    if not POSTS_DIR.exists():
-        print(f"Warning: Posts directory not found: {POSTS_DIR}")
-        print("Creating empty site...")
-
     if not TEMPLATES_DIR.exists():
         print(f"Error: Templates directory not found: {TEMPLATES_DIR}")
         return False
@@ -903,35 +1090,54 @@ def build() -> bool:
         shutil.rmtree(OUTPUT_DIR)
     OUTPUT_DIR.mkdir()
 
-    # Copy static files
+    # Copy static files (shared across languages)
     copy_static()
 
-    # Build all posts
-    posts: list[dict[str, object]] = []
-    if POSTS_DIR.exists():
-        for md_file in sorted(POSTS_DIR.glob("*.md")):
+    # Find content pairs across languages
+    post_pairs = find_content_pairs(POSTS_DIR)
+    page_pairs = find_content_pairs(PAGES_DIR)
+
+    total_posts = 0
+    total_pages = 0
+
+    for lang in LANGUAGES:
+        print(f"  [{lang.upper()}]")
+
+        # Build posts for this language
+        posts: list[dict[str, object]] = []
+        for slug, lang_paths in sorted(post_pairs.items()):
+            if lang not in lang_paths:
+                continue
+            has_alternate = get_other_lang(lang) in lang_paths
             try:
-                post_meta = build_post(md_file, warnings)
+                post_meta = build_post(lang_paths[lang], lang, has_alternate, warnings)
                 posts.append(post_meta)
             except BuildError as e:
                 errors.append(str(e))
-                print(f"  Error: {e}")
+                print(f"    Error: {e}")
 
-    # Build index
-    build_index(posts)
+        # Build index
+        build_index(posts, lang)
+        total_posts += len(posts)
 
-    # Build standalone pages
-    if PAGES_DIR.exists():
-        for md_file in sorted(PAGES_DIR.glob("*.md")):
+        # Build standalone pages
+        for slug, lang_paths in sorted(page_pairs.items()):
+            if lang not in lang_paths:
+                continue
+            has_alternate = get_other_lang(lang) in lang_paths
             try:
-                build_page(md_file)
+                build_page(lang_paths[lang], lang, has_alternate)
+                total_pages += 1
             except BuildError as e:
                 errors.append(str(e))
-                print(f"  Error: {e}")
+                print(f"    Error: {e}")
 
-    # Build Atom feed
-    if posts:
-        build_feed(posts)
+        # Build Atom feed
+        if posts:
+            build_feed(posts, lang)
+
+    # Build root redirect
+    build_root_redirect()
 
     # Copy CNAME for GitHub Pages custom domain
     cname_path = ROOT_DIR / "CNAME"
@@ -952,8 +1158,10 @@ def build() -> bool:
         print(f"Build completed with {len(errors)} error(s).")
         return False
 
-    page_count = len(list(PAGES_DIR.glob("*.md"))) if PAGES_DIR.exists() else 0
-    print(f"Done! Built {len(posts)} post(s) and {page_count} page(s).")
+    print(
+        f"Done! Built {total_posts} post(s) and {total_pages} page(s) "
+        f"across {len(LANGUAGES)} language(s)."
+    )
     print(f"Open {OUTPUT_DIR / 'index.html'} in your browser.")
     return True
 

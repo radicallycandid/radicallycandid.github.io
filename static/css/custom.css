@@ -107,11 +107,40 @@ pre > code {
     transform: scale(1.1);
 }
 
+.theme-toggle svg {
+    display: block;
+}
+
 .theme-toggle .sun { display: none; }
 .theme-toggle .moon { display: block; }
 
 [data-theme="dark"] .theme-toggle .sun { display: block; }
 [data-theme="dark"] .theme-toggle .moon { display: none; }
+
+/* Language toggle - circular flag button, mirrors theme toggle style */
+.lang-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--code-bg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.lang-toggle:hover {
+    transform: scale(1.1);
+}
+
+.lang-toggle svg {
+    display: block;
+    border-radius: 50%;
+}
 
 /* Wider main content - override Tufte's 55% to ~75% (36% wider)
    This gives more room to the main text and less to margin notes */
@@ -445,6 +474,16 @@ tr:last-child td {
         width: 2rem;
         height: 2rem;
         font-size: 1rem;
+    }
+
+    .lang-toggle {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .lang-toggle svg {
+        width: 16px;
+        height: 16px;
     }
 
     /* Full-width content (override custom.css 75% widths) */
