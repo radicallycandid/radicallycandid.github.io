@@ -58,7 +58,12 @@
         toggle.className = 'theme-toggle';
         toggle.setAttribute('aria-label', 'Toggle theme');
         toggle.innerHTML = '<span class="sun">&#9788;</span><span class="moon">&#9789;</span>';
-        document.body.appendChild(toggle);
+        var nav = document.querySelector('.site-nav');
+        if (nav) {
+            nav.appendChild(toggle);
+        } else {
+            document.body.appendChild(toggle);
+        }
 
         toggle.addEventListener('click', function () {
             const current = document.documentElement.getAttribute('data-theme') || getColorPreference();

@@ -434,17 +434,16 @@ tr:last-child td {
 
     .nav-links {
         gap: 0.75rem;
-        margin-right: 2.5rem; /* make room for the theme toggle */
     }
 
     .nav-links a {
         font-size: 1rem;
     }
 
-    /* Theme toggle: keep in header row, next to nav links */
+    /* Theme toggle: drop out of fixed positioning into the nav flex flow.
+       align-items: center on .site-nav handles vertical alignment. */
     .theme-toggle {
-        top: 0.5rem;
-        right: 0.5rem;
+        position: static;
         width: 2rem;
         height: 2rem;
         font-size: 1rem;
