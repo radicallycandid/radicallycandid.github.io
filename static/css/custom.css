@@ -94,6 +94,7 @@ pre > code {
     border-radius: 50%;
     width: 2.5rem;
     height: 2.5rem;
+    padding: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -117,14 +118,18 @@ pre > code {
 [data-theme="dark"] .theme-toggle .sun { display: block; }
 [data-theme="dark"] .theme-toggle .moon { display: none; }
 
-/* Language toggle - bare circular flag, no button chrome.
-   The flag SVG itself is the visual element, sized to match the theme toggle. */
+/* Language toggle - circular button matching theme toggle exactly.
+   Flag SVG sits inside with padding, same as sun/moon icons. */
 .lang-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
     width: 2.5rem;
     height: 2.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--code-bg);
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
@@ -137,10 +142,10 @@ pre > code {
 
 .lang-toggle svg {
     display: block;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    border: 1px solid var(--border-color);
+    overflow: hidden;
 }
 
 /* Wider main content - override Tufte's 55% to ~75% (36% wider)
@@ -483,8 +488,8 @@ tr:last-child td {
     }
 
     .lang-toggle svg {
-        width: 2rem;
-        height: 2rem;
+        width: 14px;
+        height: 14px;
     }
 
     /* Full-width content (override custom.css 75% widths) */
