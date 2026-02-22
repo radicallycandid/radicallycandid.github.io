@@ -395,10 +395,10 @@ tr:last-child td {
         font-size: 15px;
     }
 
-    /* Tame the heading sizes */
+    /* Tame the heading sizes and kill excessive top margin */
     h1 {
         font-size: 2.2rem;
-        margin-top: 1.5rem;
+        margin-top: 0;
     }
 
     h2 {
@@ -413,9 +413,9 @@ tr:last-child td {
         font-size: 1.3rem;
     }
 
-    /* Less vertical padding on article */
+    /* Kill the massive article padding from tufte.css (5rem) */
     article {
-        padding: 1.5rem 0;
+        padding: 0.5rem 0;
     }
 
     /* Header: tighter spacing */
@@ -440,9 +440,9 @@ tr:last-child td {
         font-size: 1rem;
     }
 
-    /* Theme toggle: smaller, out of the way */
+    /* Theme toggle: move below header to avoid overlapping nav */
     .theme-toggle {
-        top: 0.5rem;
+        top: 3.5rem;
         right: 0.5rem;
         width: 2rem;
         height: 2rem;
