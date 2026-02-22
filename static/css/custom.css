@@ -387,14 +387,121 @@ tr:last-child td {
     }
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments for mobile */
 @media (max-width: 760px) {
+    /* Bump font size back up for readability on small screens.
+       Desktop uses 12px (compact for ToC layout); mobile needs ~15px. */
+    html {
+        font-size: 15px;
+    }
+
+    /* Tame the heading sizes */
+    h1 {
+        font-size: 2.2rem;
+        margin-top: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.6rem;
+    }
+
+    h3 {
+        font-size: 1.3rem;
+    }
+
+    p.subtitle {
+        font-size: 1.3rem;
+    }
+
+    /* Less vertical padding on article */
+    article {
+        padding: 1.5rem 0;
+    }
+
+    /* Header: tighter spacing */
+    .site-header {
+        padding: 0.75rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .site-nav {
+        gap: 1rem;
+    }
+
+    .site-title {
+        font-size: 1.2rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+
+    .nav-links a {
+        font-size: 1rem;
+    }
+
+    /* Theme toggle: smaller, out of the way */
+    .theme-toggle {
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+    }
+
+    /* Full-width content (override custom.css 75% widths) */
+    section > p,
+    section > footer,
+    section > table,
+    blockquote p,
+    blockquote footer,
+    figure,
+    hr {
+        width: 100%;
+    }
+
+    section > dl,
+    section > ol,
+    section > ul {
+        width: 90%;
+    }
+
+    /* Sidenotes: reset custom.css overrides so tufte.css mobile rules work */
+    .sidenote,
+    .marginnote {
+        width: 95%;
+        margin-right: 0;
+        max-width: none;
+    }
+
+    /* Post list: full width */
     .post-list {
         width: 100%;
     }
 
-    .theme-toggle {
-        top: 0.5rem;
-        right: 0.5rem;
+    .post-title {
+        font-size: 1.3rem;
+    }
+
+    .post-meta {
+        font-size: 0.9rem;
+    }
+
+    .post-excerpt {
+        font-size: 1rem;
+    }
+
+    /* Code blocks: full width, prevent overflow */
+    pre > code {
+        width: 100%;
+        margin-left: 0;
+        font-size: 0.85rem;
+    }
+
+    /* Tables: scrollable if too wide */
+    table {
+        display: block;
+        overflow-x: auto;
+        width: 100%;
     }
 }
