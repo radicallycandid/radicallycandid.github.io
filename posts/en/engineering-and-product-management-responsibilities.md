@@ -1,7 +1,8 @@
 ---
 title: "EM and PM in product teams: who drives what"
 date: 2026-02-27
-excerpt: 'When the PM has to keep asking "when will it ship?", that''s a symptom of dysfunction.'
+excerpt: >-
+  When the PM has to keep asking "when will it ship?", that's a symptom of dysfunction.
 ---
 
 ## Delivery management is the EM's responsibility
