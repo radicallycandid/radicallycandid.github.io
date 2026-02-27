@@ -1,8 +1,7 @@
 ---
 title: "EM e PM em times de produto: quem puxa o quê"
 date: 2026-02-27
-excerpt: >-
-  Quando a PM precisa perguntar "vai sair quando?" o tempo todo, isso é sintoma de disfunção.
+excerpt: Quando a PM precisa perguntar "vai sair quando?" o tempo todo, isso é sintoma de disfunção.
 ---
 
 ## A gestão das entregas é responsabilidade da EM
