@@ -1,17 +1,16 @@
 /* Custom extensions to Tufte CSS */
 
-/* Import Source Code Pro for monospace */
-@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600&display=swap');
+/* Import Inter for body text and Source Code Pro for monospace */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap');
 
-/* Theme toggle support - override prefers-color-scheme with data attribute
-   Using Solarized palette for harmonious light/dark themes.
-   Solarized uses symmetric CIELAB lightness - both modes have equal contrast.
-   See: https://ethanschoonover.com/solarized/ */
+/* Theme toggle support - override prefers-color-scheme with data attribute.
+   Light: Solarized palette. Dark: neutral grays with white headings. */
 :root {
     /* Solarized Light background with higher contrast text */
     --bg-color: #fdf6e3;
     --text-color: #073642;
     --text-muted: #586e75;
+    --heading-color: #073642;
     --link-color: #073642;
     --code-bg: #eee8d5;
     --border-color: #d3cbb7;
@@ -19,19 +18,20 @@
 }
 
 [data-theme="dark"] {
-    /* Solarized Dark background with higher contrast text */
-    --bg-color: #002b36;
-    --text-color: #eee8d5;
-    --text-muted: #93a1a1;
-    --link-color: #eee8d5;
-    --code-bg: #073642;
-    --border-color: #094352;
-    --selection-bg: #073642;
+    /* Dark gray background, light gray text, white headings */
+    --bg-color: #1e1e1e;
+    --text-color: #b0b0b0;
+    --text-muted: #808080;
+    --heading-color: #ffffff;
+    --link-color: #d0d0d0;
+    --code-bg: #2a2a2a;
+    --border-color: #3a3a3a;
+    --selection-bg: #3a3a3a;
 }
 
-/* Use Tufte's default 15px base font.
-   The 12px scaling was for knowledge-base 3-column layouts; a blog doesn't need it. */
+/* Override Tufte's ET Book with Inter, keep 15px base size */
 html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 15px;
 }
 
@@ -45,6 +45,11 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Headings use the heading color (white in dark mode) */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--heading-color);
 }
 
 /* Override the built-in prefers-color-scheme when theme is manually set */
@@ -208,6 +213,7 @@ hr {
 
 .post-title a {
     text-decoration: none;
+    color: var(--heading-color);
 }
 
 .post-title a:hover {
@@ -260,6 +266,7 @@ hr {
     font-variant: small-caps;
     text-decoration: none;
     letter-spacing: 0.05em;
+    color: var(--heading-color);
 }
 
 .nav-links {
