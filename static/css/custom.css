@@ -122,6 +122,12 @@ pre > code {
 [data-theme="dark"] .theme-toggle .sun { display: block; }
 [data-theme="dark"] .theme-toggle .moon { display: none; }
 
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .lang-toggle {
+    background: #333;
+    border-color: #4a4a4a;
+}
+
 /* Language toggle - circular button matching theme toggle exactly.
    Flag SVG sits inside with padding, same as sun/moon icons. */
 .lang-toggle {
