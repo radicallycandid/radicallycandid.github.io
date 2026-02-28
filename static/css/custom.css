@@ -551,10 +551,13 @@ tr:last-child td {
         max-width: none;
     }
 
-    /* About section: compact text to reduce scroll to post list */
+    /* Uniform body text size on mobile: smaller than desktop (1.4rem)
+       for less scrolling, but consistent across about and post pages */
+    p {
+        font-size: 1.25rem;
+    }
+
     .about p {
-        font-size: 1.1rem;
-        line-height: 1.7;
         margin-top: 1rem;
         margin-bottom: 1rem;
     }
@@ -565,7 +568,7 @@ tr:last-child td {
 
     .dinkus {
         width: 100%;
-        margin: 0.8rem 0;
+        margin: 0.8rem 0 0 0;
         font-size: 1rem;
     }
 
