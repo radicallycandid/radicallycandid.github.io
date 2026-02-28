@@ -204,12 +204,16 @@ hr {
     width: 75%;
     color: var(--text-muted);
     letter-spacing: 0.5em;
-    margin: 1.4rem 0;
+    margin: 1.4rem 0 0 0;
     font-size: 1.2rem;
 }
 
 .dinkus + section {
     margin-top: 0;
+}
+
+.dinkus + section .post-item:first-child .post-title {
+    margin-top: 0.5rem;
 }
 
 /* Index page styles */
