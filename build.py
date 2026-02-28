@@ -77,13 +77,11 @@ DEFAULT_LANG = "en"
 
 I18N = {
     "en": {
-        "about_label": "About",
         "published_label": "Published",
         "updated_label": "Updated",
         "site_description": f"Personal site of {SITE_TITLE}",
     },
     "pt": {
-        "about_label": "Sobre",
         "published_label": "Publicado",
         "updated_label": "Atualizado",
         "site_description": f"Site pessoal de {SITE_TITLE}",
@@ -822,8 +820,6 @@ def build_post(
             "has_alternate": has_alternate,
             "other_lang_url": f"../../{other}/posts/{output_name}",
             "lang_flag": LANG_FLAGS[other],
-            "about_label": strings["about_label"],
-            "about_url": f"../../{lang}/about.html",
             "home_url": f"../../{lang}/index.html",
         },
     )
@@ -865,7 +861,15 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
     for post in posts:
         post["updated_label"] = strings["updated_label"]
 
-    index_content = render_template("index.html", {"posts": posts})
+    # Load about page content for the homepage
+    about_path = PAGES_DIR / lang / "about.md"
+    about_html = ""
+    if about_path.exists():
+        about_raw = about_path.read_text()
+        _, about_body = parse_frontmatter(about_raw, about_path)
+        about_html, _ = markdown_to_html(about_body)
+
+    index_content = render_template("index.html", {"posts": posts, "about_html": about_html})
     full_html = render_template(
         "base.html",
         {
@@ -879,8 +883,6 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
             "has_alternate": True,
             "other_lang_url": f"../{other}/index.html",
             "lang_flag": LANG_FLAGS[other],
-            "about_label": strings["about_label"],
-            "about_url": f"../{lang}/about.html",
             "home_url": f"../{lang}/index.html",
         },
     )
@@ -951,8 +953,6 @@ def build_page(
             "has_alternate": has_alternate,
             "other_lang_url": f"../{other}/{output_name}",
             "lang_flag": LANG_FLAGS[other],
-            "about_label": strings["about_label"],
-            "about_url": f"../{lang}/about.html",
             "home_url": f"../{lang}/index.html",
         },
     )
@@ -1120,8 +1120,10 @@ def build() -> bool:
         build_index(posts, lang)
         total_posts += len(posts)
 
-        # Build standalone pages
+        # Build standalone pages (about is inlined on the homepage)
         for slug, lang_paths in sorted(page_pairs.items()):
+            if slug == "about":
+                continue
             if lang not in lang_paths:
                 continue
             has_alternate = get_other_lang(lang) in lang_paths
