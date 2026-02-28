@@ -20,7 +20,7 @@ import shutil
 import socketserver
 from datetime import datetime
 from pathlib import Path
-from typing import Match
+from xml.sax.saxutils import escape as xml_escape
 
 # Use markdown library if available, otherwise fallback to basic conversion
 try:
@@ -259,7 +259,7 @@ def convert_sidenotes(html: str) -> str:
     """
     sidenote_counter = [0]  # Use list to allow modification in nested function
 
-    def replace_sidenote(match: Match[str]) -> str:
+    def replace_sidenote(match: re.Match[str]) -> str:
         sidenote_counter[0] += 1
         note_id = f"sn-{sidenote_counter[0]}"
         content = match.group(1)
@@ -269,7 +269,7 @@ def convert_sidenotes(html: str) -> str:
             f'<span class="sidenote">{content}</span>'
         )
 
-    def replace_marginnote(match: Match[str]) -> str:
+    def replace_marginnote(match: re.Match[str]) -> str:
         sidenote_counter[0] += 1
         note_id = f"mn-{sidenote_counter[0]}"
         content = match.group(1)
@@ -323,7 +323,7 @@ def basic_markdown_to_html(text: str) -> str:
     # Extract and protect code blocks first (they may contain blank lines)
     code_blocks: list[str] = []
 
-    def save_code_block(match: Match[str]) -> str:
+    def save_code_block(match: re.Match[str]) -> str:
         code_blocks.append(match.group(2))
         return f"__CODE_BLOCK_{len(code_blocks) - 1}__"
 
@@ -532,7 +532,7 @@ def add_heading_ids(html: str, headings: list[dict[str, str | int]]) -> str:
     """
     heading_index = 0
 
-    def add_id(match: Match[str]) -> str:
+    def add_id(match: re.Match[str]) -> str:
         nonlocal heading_index
         if heading_index >= len(headings):
             return match.group(0)
@@ -640,7 +640,7 @@ def render_template(template_name: str, context: dict[str, object]) -> str:
     template = template_path.read_text()
 
     def render_content(content: str, ctx: dict[str, object]) -> str:
-        def replace_block(match: Match[str]) -> str:
+        def replace_block(match: re.Match[str]) -> str:
             key = match.group(1)
             inner = match.group(2)
             value = ctx.get(key)
@@ -977,11 +977,11 @@ def build_feed(posts: list[dict[str, object]], lang: str) -> None:
     for post in posts[:20]:
         entries.append(
             f"  <entry>\n"
-            f"    <title>{post['title']}</title>\n"
+            f"    <title>{xml_escape(str(post['title']))}</title>\n"
             f"    <link href=\"{SITE_URL}/{lang}/{post['url']}\"/>\n"
             f"    <id>{SITE_URL}/{lang}/{post['url']}</id>\n"
             f"    <updated>{post['published_date']}T00:00:00Z</updated>\n"
-            f"    <summary>{post.get('excerpt', '')}</summary>\n"
+            f"    <summary>{xml_escape(str(post.get('excerpt', '')))}</summary>\n"
             f"  </entry>"
         )
 
