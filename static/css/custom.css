@@ -194,6 +194,15 @@ hr {
     max-width: 300px;
 }
 
+/* Dinkus separator between about and post list */
+.dinkus {
+    text-align: center;
+    color: var(--text-muted);
+    letter-spacing: 0.5em;
+    margin: 2.5rem 0;
+    font-size: 1.2rem;
+}
+
 /* Index page styles */
 .post-list {
     list-style: none;
@@ -527,6 +536,12 @@ tr:last-child td {
         width: 95%;
         margin-right: 0;
         max-width: none;
+    }
+
+    /* About section: smaller text to reduce scroll to post list */
+    .about p {
+        font-size: 1.2rem;
+        line-height: 1.8;
     }
 
     /* Post list: full width */
