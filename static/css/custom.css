@@ -195,6 +195,11 @@ hr {
     max-width: 300px;
 }
 
+/* About section on homepage - match post list width */
+.about p {
+    width: 55%;
+}
+
 /* Index page styles */
 .post-list {
     list-style: none;
@@ -512,7 +517,8 @@ tr:last-child td {
     blockquote p,
     blockquote footer,
     figure,
-    hr {
+    hr,
+    .about p {
         width: 100%;
     }
 
