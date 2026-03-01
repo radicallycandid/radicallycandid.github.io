@@ -841,6 +841,7 @@ def build_post(
         "excerpt": excerpt,
         "url": f"posts/{output_name}",
         "path": md_path,
+        "draft": frontmatter.get("draft", "").lower() == "true",
     }
 
 
@@ -1116,8 +1117,11 @@ def build() -> bool:
                 errors.append(str(e))
                 print(f"    Error: {e}")
 
+        # Filter out drafts from public listings
+        public_posts = [p for p in posts if not p.get("draft")]
+
         # Build index
-        build_index(posts, lang)
+        build_index(public_posts, lang)
         total_posts += len(posts)
 
         # Build standalone pages (about is inlined on the homepage)
@@ -1135,8 +1139,8 @@ def build() -> bool:
                 print(f"    Error: {e}")
 
         # Build Atom feed
-        if posts:
-            build_feed(posts, lang)
+        if public_posts:
+            build_feed(public_posts, lang)
 
     # Build root redirect
     build_root_redirect()
