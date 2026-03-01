@@ -142,6 +142,22 @@ if (isEmbed) {
   .theme-toggle:hover { border-color: var(--text-color); }
   [data-theme="light"] .moon { display: none; }
   [data-theme="dark"] .sun { display: none; }
+  .center-btn {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-muted);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    z-index: 10;
+  }
+  .center-btn:hover { border-color: var(--text-color); color: var(--text-color); }
   /* Embed mode: hide standalone-only chrome */
   .embed .theme-toggle,
   .embed .instructions { display: none; }
@@ -154,6 +170,8 @@ if (isEmbed) {
 <div class="instructions">
   Arraste os nós · Scroll para zoom · Passe o mouse para ver detalhes
 </div>
+
+<button class="center-btn" onclick="centerGraph()">Centralizar</button>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
@@ -376,8 +394,8 @@ setTimeout(() => {
   });
 }, 150);
 
-// Center the graph shortly after layout stabilizes
-setTimeout(() => {
+// Center the graph: fit all nodes with padding
+function centerGraph() {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   nodes.forEach(n => {
     if (n.x < minX) minX = n.x;
@@ -397,7 +415,9 @@ setTimeout(() => {
     zoom.transform,
     d3.zoomIdentity.translate(tx, ty).scale(scale)
   );
-}, 500);
+}
+
+setTimeout(centerGraph, 500);
 </script>
 </body>
 </html>
