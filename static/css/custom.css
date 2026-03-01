@@ -456,7 +456,7 @@ tr:last-child td {
 
 /* Embedded interactive graph */
 .graph-embed {
-    width: 100%;
+    width: 75%;
     height: 500px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -550,6 +550,10 @@ tr:last-child td {
     blockquote footer,
     figure,
     hr {
+        width: 100%;
+    }
+
+    .graph-embed {
         width: 100%;
     }
 
