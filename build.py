@@ -77,13 +77,9 @@ DEFAULT_LANG = "en"
 
 I18N = {
     "en": {
-        "published_label": "Published",
-        "updated_label": "Updated",
         "site_description": f"Personal site of {SITE_TITLE}",
     },
     "pt": {
-        "published_label": "Publicado",
-        "updated_label": "Atualizado",
         "site_description": f"Site pessoal de {SITE_TITLE}",
     },
 }
@@ -769,13 +765,9 @@ def build_post(
 
     # Get dates
     published_date = frontmatter.get("date", "")
-    file_mtime = datetime.fromtimestamp(md_path.stat().st_mtime)
-    updated_date = file_mtime.strftime(DATE_FORMAT_INPUT)
-
     if not published_date:
-        published_date = updated_date
-
-    was_updated = updated_date != published_date
+        file_mtime = datetime.fromtimestamp(md_path.stat().st_mtime)
+        published_date = file_mtime.strftime(DATE_FORMAT_INPUT)
 
     # Convert body to HTML
     body_html, headings = markdown_to_html(body)
@@ -796,14 +788,10 @@ def build_post(
             "title": title,
             "subtitle": subtitle,
             "published_date": format_date(published_date, lang),
-            "updated_date": format_date(updated_date, lang) if was_updated else "",
-            "was_updated": was_updated,
             "body": body_html,
             "toc": toc_html,
             "has_toc": has_toc,
             "root": "../../",
-            "published_label": strings["published_label"],
-            "updated_label": strings["updated_label"],
         },
     )
 
@@ -835,9 +823,6 @@ def build_post(
         "title": title,
         "published_date": published_date,
         "published_date_formatted": format_date(published_date, lang),
-        "updated_date": updated_date,
-        "updated_date_formatted": format_date(updated_date, lang),
-        "was_updated": was_updated,
         "excerpt": excerpt,
         "url": f"posts/{output_name}",
         "path": md_path,
@@ -856,11 +841,7 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
     strings = I18N[lang]
     other = get_other_lang(lang)
 
-    posts = sorted(posts, key=lambda p: str(p["updated_date"]), reverse=True)
-
-    # Add translated updated label to each post item for the template loop
-    for post in posts:
-        post["updated_label"] = strings["updated_label"]
+    posts = sorted(posts, key=lambda p: str(p["published_date"]), reverse=True)
 
     # Load about page content for the homepage
     about_path = PAGES_DIR / lang / "about.md"
