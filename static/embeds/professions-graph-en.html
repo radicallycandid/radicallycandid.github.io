@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professions Adjacency Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/static/js/theme.js"></script>
+<script>
+// Embed mode: hide chrome, listen for theme sync from parent
+const isEmbed = new URLSearchParams(window.location.search).has('embed');
+if (isEmbed) {
+  document.documentElement.classList.add('embed');
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'theme-change') {
+      document.documentElement.setAttribute('data-theme', e.data.theme);
+    }
+  });
+}
+</script>
+<style>
+  :root {
+    --bg-color: #e8e8e8;
+    --text-color: #4a4a4a;
+    --text-muted: #808080;
+    --heading-color: #000000;
+    --border-color: #d0d0d0;
+    --code-bg: #dcdcdc;
+    --node-fill: #d0d0d0;
+    --node-stroke: #4a4a4a;
+    --link-color: #c0c0c0;
+    --link-hover: #4a4a4a;
+  }
+  [data-theme="dark"] {
+    --bg-color: #252525;
+    --text-color: #b0b0b0;
+    --text-muted: #808080;
+    --heading-color: #ffffff;
+    --border-color: #3a3a3a;
+    --code-bg: #303030;
+    --node-fill: #3a3a3a;
+    --node-stroke: #b0b0b0;
+    --link-color: #444444;
+    --link-hover: #b0b0b0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+  svg { display: block; }
+  .link {
+    stroke: var(--link-color);
+    stroke-width: 1.5px;
+  }
+  .node circle {
+    fill: var(--node-fill);
+    stroke: var(--node-stroke);
+    stroke-width: 1.5px;
+    cursor: grab;
+    transition: fill 0.2s, stroke 0.2s;
+  }
+  .node circle:active { cursor: grabbing; }
+  .node text {
+    fill: var(--text-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+  .node .abbr {
+    fill: var(--heading-color);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .node .label-bg {
+    fill: var(--bg-color);
+    opacity: 0.9;
+    transition: fill 0.2s;
+  }
+  .tooltip {
+    position: absolute;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 320px;
+    line-height: 1.6;
+  }
+  .tooltip b {
+    color: var(--heading-color);
+    font-weight: 600;
+  }
+  .tooltip .desc {
+    color: var(--text-muted);
+  }
+  .instructions {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: var(--text-muted);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .theme-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--code-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    z-index: 10;
+  }
+  .theme-toggle:hover { border-color: var(--text-color); }
+  [data-theme="light"] .moon { display: none; }
+  [data-theme="dark"] .sun { display: none; }
+  /* Embed mode: hide standalone-only chrome */
+  .embed .theme-toggle,
+  .embed .instructions { display: none; }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="instructions">
+  Drag nodes · Scroll to zoom · Hover for details
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const nodes = [
+  {
+    id: "PM", label: "Product Manager",
+    desc: "Decides which problems to solve, prioritizes the roadmap, and ensures the product delivers for customers and the business."
+  },
+  {
+    id: "PD", label: "Product Designer",
+    desc: "Defines how the product looks and behaves for users, balancing usability, aesthetics, and technical feasibility."
+  },
+  {
+    id: "FE", label: "SW Engineer (Front End)",
+    desc: "Develops and maintains the code that runs on the client side, shaping how the product looks and responds to use."
+  },
+  {
+    id: "BE", label: "SW Engineer (Back End)",
+    desc: "Develops and maintains the code that runs on the server side, including services, APIs, business logic, and data access."
+  },
+  {
+    id: "EM", label: "Engineering Manager",
+    desc: "Makes technical decisions, leads engineering people, and manages the delivery process, ensuring quality and velocity."
+  },
+  {
+    id: "DP", label: "Data Platform Engineer",
+    desc: "Builds and operates the platform that enables the organization to collect, store, and process data at scale."
+  },
+  {
+    id: "AE", label: "Analytics Engineer",
+    desc: "Models and transforms the organization's data so that it is reliable, well-documented, and ready for consumption."
+  },
+  {
+    id: "DS", label: "Data Scientist",
+    desc: "Develops statistical and machine learning models that turn data into predictions and recommendations."
+  },
+  {
+    id: "BA", label: "Business Analyst",
+    desc: "Analyzes business data and processes to identify opportunities, support decisions, and track results."
+  }
+];
+
+const links = [
+  { source: "PM", target: "PD" },
+  { source: "PM", target: "EM" },
+  { source: "PM", target: "BA" },
+  { source: "PD", target: "FE" },
+  { source: "FE", target: "BE" },
+  { source: "FE", target: "EM" },
+  { source: "BE", target: "EM" },
+  { source: "DP", target: "AE" },
+  { source: "AE", target: "BA" },
+  { source: "AE", target: "DS" },
+  { source: "DS", target: "BA" },
+];
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+const g = svg.append("g");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.3, 4])
+  .on("zoom", (event) => g.attr("transform", event.transform));
+svg.call(zoom);
+
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d => d.id).distance(150))
+  .force("charge", d3.forceManyBody().strength(-600))
+  .force("center", d3.forceCenter(width / 2, height / 2))
+  .force("collision", d3.forceCollide().radius(55))
+  .force("x", d3.forceX(width / 2).strength(0.05))
+  .force("y", d3.forceY(height / 2).strength(0.05));
+
+const link = g.append("g")
+  .selectAll("line")
+  .data(links)
+  .join("line")
+  .attr("class", "link");
+
+const node = g.append("g")
+  .selectAll("g")
+  .data(nodes)
+  .join("g")
+  .attr("class", "node");
+
+node.append("circle")
+  .attr("r", 24);
+
+// Label below node
+node.each(function(d) {
+  const el = d3.select(this);
+
+  el.append("rect")
+    .attr("class", "label-bg")
+    .attr("rx", 3);
+
+  el.append("text")
+    .attr("class", "label")
+    .attr("dy", 42)
+    .text(d.label);
+});
+
+// Abbreviation inside circle
+node.append("text")
+  .attr("class", "abbr")
+  .attr("dy", 4)
+  .text(d => d.id);
+
+const tooltip = d3.select("#tooltip");
+
+function getConnected(nodeId) {
+  const connected = new Set();
+  links.forEach(l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (sid === nodeId) connected.add(tid);
+    if (tid === nodeId) connected.add(sid);
+  });
+  return connected;
+}
+
+// Read CSS variable values for dynamic styling
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+node.on("mouseover", function(event, d) {
+  const connected = getConnected(d.id);
+
+  link
+    .attr("stroke-opacity", l =>
+      (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1
+    )
+    .attr("stroke-width", l =>
+      (l.source.id === d.id || l.target.id === d.id) ? 2.5 : 1.5
+    )
+    .attr("stroke", l =>
+      (l.source.id === d.id || l.target.id === d.id) ? cssVar('--link-hover') : cssVar('--link-color')
+    );
+
+  node.select("circle").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15
+  );
+  node.selectAll("text").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15
+  );
+  node.select(".label-bg").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 0.9 : 0.1
+  );
+
+  tooltip
+    .html(`<b>${d.label}</b><br><span class="desc">${d.desc}</span>`)
+    .style("opacity", 1)
+    .style("left", (event.pageX + 18) + "px")
+    .style("top", (event.pageY - 18) + "px");
+})
+.on("mousemove", function(event) {
+  let x = event.pageX + 18;
+  let y = event.pageY - 18;
+  const ttNode = tooltip.node();
+  const ttW = ttNode.offsetWidth;
+  const ttH = ttNode.offsetHeight;
+  if (x + ttW > width - 10) x = event.pageX - ttW - 18;
+  if (y + ttH > height - 10) y = height - ttH - 10;
+  if (y < 10) y = 10;
+  tooltip.style("left", x + "px").style("top", y + "px");
+})
+.on("mouseout", function() {
+  link.attr("stroke-opacity", 1).attr("stroke-width", 1.5).attr("stroke", cssVar('--link-color'));
+  node.select("circle").attr("opacity", 1);
+  node.selectAll("text").attr("opacity", 1);
+  node.select(".label-bg").attr("opacity", 0.9);
+  tooltip.style("opacity", 0);
+});
+
+node.call(d3.drag()
+  .on("start", (event, d) => {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  })
+  .on("drag", (event, d) => {
+    d.fx = event.x;
+    d.fy = event.y;
+  })
+  .on("end", (event, d) => {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  })
+);
+
+simulation.on("tick", () => {
+  link
+    .attr("x1", d => d.source.x)
+    .attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x)
+    .attr("y2", d => d.target.y);
+
+  node.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+// Fit label backgrounds after initial layout
+setTimeout(() => {
+  node.each(function() {
+    const el = d3.select(this);
+    const textNode = el.select(".label").node();
+    if (!textNode) return;
+    const bbox = textNode.getBBox();
+    el.select(".label-bg")
+      .attr("x", bbox.x - 4)
+      .attr("y", bbox.y - 2)
+      .attr("width", bbox.width + 8)
+      .attr("height", bbox.height + 4);
+  });
+}, 150);
+
+// Center the graph shortly after layout stabilizes
+setTimeout(() => {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    if (n.x < minX) minX = n.x;
+    if (n.x > maxX) maxX = n.x;
+    if (n.y < minY) minY = n.y;
+    if (n.y > maxY) maxY = n.y;
+  });
+  const graphW = maxX - minX + 120;
+  const graphH = maxY - minY + 120;
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+  const scale = Math.min(width / graphW, height / graphH, 1.2) * 0.85;
+  const tx = width / 2 - midX * scale;
+  const ty = height / 2 - midY * scale;
+
+  svg.transition().duration(800).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+}, 500);
+</script>
+</body>
+</html>

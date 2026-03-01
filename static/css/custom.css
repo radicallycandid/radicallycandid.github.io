@@ -454,6 +454,22 @@ tr:last-child td {
     }
 }
 
+/* Embedded interactive graph */
+.graph-embed {
+    width: 100%;
+    height: 500px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin: 1.5rem 0;
+}
+
+.graph-embed iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 6px;
+}
+
 /* Responsive adjustments for mobile */
 @media (max-width: 760px) {
     /* Bump font size back up for readability on small screens.
