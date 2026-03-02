@@ -10,7 +10,7 @@ There's a growing narrative in tech that AI will dissolve the boundaries between
 
 This narrative gets something important right. AI really does make it possible for people to stretch into areas that were previously out of reach. A Product Manager can now prototype a working interface. A Product Designer can generate functional code outside of Figma. People across disciplines can analyze data without deep SQL expertise. For anyone with curiosity and initiative, the barriers are lower and the boundaries more fluid than they've ever been.
 
-Still, I don't think it follows that all roles will converge into one, at least not in large, mature companies. It overestimates people's capacity for cognitive and psychological adaptation, and it underestimates the depth required to do any of these jobs well in a professional context.
+Still, I don't think it follows that all roles will converge into one, at least not in large, mature companies. This view overestimates people's capacity for cognitive and psychological adaptation, and underestimates the depth required to do any of these jobs well in a professional context.
 
 ## Why Different Roles Exist
 
