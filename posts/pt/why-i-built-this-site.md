@@ -23,7 +23,7 @@ O que eu quero é simples: pegar arquivos Markdown e transformar em HTML. É iss
 
 Aqui a história fica mais honesta. Eu tenho mais de uma década de proximidade com programação, mas sou vice-presidente de uma empresa. Meu dia a dia não é escrever código. Sei o suficiente pra ler, revisar e testar, mas construir um gerador de site inteiro sozinho seria um investimento de tempo que provavelmente me faria desistir.
 
-O Claude Code tornou isso viável. Não só pela capacidade, mas pela energia: quando a barreira entre ideia e execução cai o suficiente, você realmente faz a coisa. O gerador inteiro (o script de build, os templates, o CSS customizado) foi construído com ele. Eu definia o que queria, revisava o que ele produzia, testava, pedia ajustes. O resultado é um script Python de cerca de 1200 linhas que faz exatamente o que eu preciso e nada mais.
+O Claude Code tornou isso viável. Não só pela capacidade, mas pela energia: quando a barreira entre ideia e execução cai o suficiente, você realmente faz a coisa. O gerador inteiro (o script de build, os templates, o CSS customizado) foi construído com ele. Eu definia o que queria, revisava o que ele produzia, testava, pedia ajustes. O resultado é um script Python de cerca de 1200 linhas que faz exatamente o que eu preciso e nada mais.{mn}Por exemplo, publicar um post como rascunho, acessível por link direto mas invisível na home.{/mn}
 
 Mas o mais interessante não foi economizar tempo. Foi aprender. Construir um gerador do zero, mesmo com assistência de IA, me ensinou como essas ferramentas funcionam por baixo dos panos. Parsear frontmatter, converter Markdown pra HTML, aplicar templates, gerar feeds Atom. Eu entendia tudo isso superficialmente e agora entendo de verdade.
 
@@ -31,7 +31,7 @@ Mas o mais interessante não foi economizar tempo. Foi aprender. Construir um ge
 
 A escolha visual não é acidental. Eu conheci o Edward Tufte lendo *The Visual Display of Quantitative Information* na faculdade. Aquele livro mudou como eu penso sobre dados e comunicação. As ideias dele (densidade informacional, minimizar o supérfluo, deixar os dados falarem) foram fundamentais na minha carreira como cientista de dados e, depois, quando assumi a gestão da disciplina de design na empresa em que trabalho.
 
-O Tufte CSS traduz parte dessa filosofia pra web. Sidenotes e margin notes aparecem no campo visual sem interromper o fluxo de leitura.{mn}Notas de rodapé forçam uma decisão: vale a pena interromper a leitura? Sidenotes tiram essa fricção. A informação está ali se você quiser.{/mn} É uma escolha que reflete como eu acho que texto deveria ser consumido.
+O Tufte CSS traduz parte dessa filosofia pra web. Margin notes aparecem no campo visual sem interromper o fluxo de leitura.{mn}Notas de rodapé forçam uma decisão: vale a pena interromper a leitura? Margin notes tiram essa fricção. A informação está ali se você quiser.{/mn} É uma escolha que reflete como eu acho que texto deveria ser consumido.
 
 ## Por que bilíngue
 

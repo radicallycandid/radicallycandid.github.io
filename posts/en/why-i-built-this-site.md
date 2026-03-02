@@ -23,7 +23,7 @@ What I want is simple: take Markdown files and turn them into HTML. That's it.
 
 This is where the story gets more honest. I've been close to programming for over a decade, but I'm a VP at a company. My day-to-day is not writing code. I know enough to read, review, and test, but building an entire site generator on my own would have been a time investment that would probably have made me give up.
 
-Claude Code made it viable. Not just through capability, but through energy: when the barrier between an idea and its execution drops far enough, you actually do the thing. The entire generator (the build script, the templates, the custom CSS) was built with it. I'd define what I wanted, review what it produced, test it, ask for adjustments. The result is a Python script of about 1,200 lines that does exactly what I need and nothing more.
+Claude Code made it viable. Not just through capability, but through energy: when the barrier between an idea and its execution drops far enough, you actually do the thing. The entire generator (the build script, the templates, the custom CSS) was built with it. I'd define what I wanted, review what it produced, test it, ask for adjustments. The result is a Python script of about 1,200 lines that does exactly what I need and nothing more.{mn}For example, publishing a post as a draft, accessible by direct link but invisible on the home page.{/mn}
 
 But the most interesting part wasn't saving time. It was learning. Building a generator from scratch, even with AI assistance, taught me how these tools actually work under the hood. Parsing frontmatter, converting Markdown to HTML, applying templates, generating Atom feeds. I understood all of this superficially before and now understand it for real.
 
@@ -31,7 +31,7 @@ But the most interesting part wasn't saving time. It was learning. Building a ge
 
 The visual choice is not accidental. I first encountered Edward Tufte reading *The Visual Display of Quantitative Information* in college. That book changed how I think about data and communication. His ideas (information density, minimizing chart junk, letting the data speak) were foundational to my career as a data scientist, and later, when I took on design leadership at the company where I work.
 
-Tufte CSS translates part of that philosophy to the web. Sidenotes and margin notes appear in your field of vision without interrupting the reading flow.{mn}Footnotes force a decision: is this worth breaking my reading flow? Sidenotes remove that friction. The information is there if you want it.{/mn} It's a choice that reflects how I think text should be consumed.
+Tufte CSS translates part of that philosophy to the web. Margin notes appear in your field of vision without interrupting the reading flow.{mn}Footnotes force a decision: is this worth breaking my reading flow? Margin notes remove that friction. The information is there if you want it.{/mn} It's a choice that reflects how I think text should be consumed.
 
 ## Why Bilingual
 
