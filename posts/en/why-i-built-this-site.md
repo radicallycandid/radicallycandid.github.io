@@ -27,6 +27,24 @@ Claude Code made it viable. Not just through capability, but through energy: whe
 
 But the most interesting part wasn't saving time. It was learning. Building a generator from scratch, even with AI assistance, taught me how these tools actually work under the hood. Parsing frontmatter, converting Markdown to HTML, applying templates, generating Atom feeds. I understood all of this superficially before and now understand it for real.
 
+The diagram below shows the full pipeline: how source files flow through the build script to become the final site. Click any processing step to see a concrete before-and-after transformation.
+
+<div class="graph-embed" style="height: 650px;">
+  <iframe src="/static/embeds/build-pipeline-en.html?embed" title="Build pipeline visualization"></iframe>
+</div>
+<script>
+(function() {
+  var iframe = document.querySelector('.graph-embed iframe[src*="build-pipeline"]');
+  var observer = new MutationObserver(function() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    if (iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+
 ## Tufte
 
 The visual choice is not accidental. I first encountered Edward Tufte reading *The Visual Display of Quantitative Information* in college. That book changed how I think about data and communication. His ideas (information density, minimizing chart junk, letting the data speak) were foundational to my career as a data scientist, and later, when I took on design leadership at the company where I work.

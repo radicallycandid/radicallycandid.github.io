@@ -27,6 +27,24 @@ O Claude Code tornou isso viável. Não só pela capacidade, mas pela energia: q
 
 Mas o mais interessante não foi economizar tempo. Foi aprender. Construir um gerador do zero, mesmo com assistência de IA, me ensinou como essas ferramentas funcionam por baixo dos panos. Parsear frontmatter, converter Markdown pra HTML, aplicar templates, gerar feeds Atom. Eu entendia tudo isso superficialmente e agora entendo de verdade.
 
+O diagrama abaixo mostra o pipeline completo: como os arquivos fonte passam pelo script de build até virar o site final. Clique em qualquer etapa de processamento para ver uma transformação concreta de antes e depois.
+
+<div class="graph-embed" style="height: 650px;">
+  <iframe src="/static/embeds/build-pipeline-pt.html?embed" title="Visualização do pipeline de build"></iframe>
+</div>
+<script>
+(function() {
+  var iframe = document.querySelector('.graph-embed iframe[src*="build-pipeline"]');
+  var observer = new MutationObserver(function() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    if (iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+
 ## Tufte
 
 A escolha visual não é acidental. Eu conheci o Edward Tufte lendo *The Visual Display of Quantitative Information* na faculdade. Aquele livro mudou como eu penso sobre dados e comunicação. As ideias dele (densidade informacional, minimizar o supérfluo, deixar os dados falarem) foram fundamentais na minha carreira como cientista de dados e, depois, quando assumi a gestão da disciplina de design na empresa em que trabalho.

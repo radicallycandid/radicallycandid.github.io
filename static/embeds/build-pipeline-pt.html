@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline de Build — vmargato.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<script src="/static/js/theme.js"></script>
+<script>
+const isEmbed = new URLSearchParams(window.location.search).has('embed');
+if (isEmbed) {
+  document.documentElement.classList.add('embed');
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'theme-change') {
+      document.documentElement.setAttribute('data-theme', e.data.theme);
+    }
+  });
+}
+</script>
+<style>
+  :root {
+    --bg-color: #e8e8e8;
+    --text-color: #4a4a4a;
+    --text-muted: #808080;
+    --heading-color: #000000;
+    --border-color: #d0d0d0;
+    --code-bg: #dcdcdc;
+    --node-fill: #d0d0d0;
+    --node-stroke: #4a4a4a;
+    --link-color: #c0c0c0;
+    --link-hover: #4a4a4a;
+  }
+  [data-theme="dark"] {
+    --bg-color: #252525;
+    --text-color: #b0b0b0;
+    --text-muted: #808080;
+    --heading-color: #ffffff;
+    --border-color: #3a3a3a;
+    --code-bg: #303030;
+    --node-fill: #3a3a3a;
+    --node-stroke: #b0b0b0;
+    --link-color: #444444;
+    --link-hover: #b0b0b0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    transition: background 0.2s;
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+  svg { display: block; }
+  .edge {
+    stroke: var(--link-color);
+    stroke-width: 1.5px;
+    fill: none;
+    transition: stroke 0.2s, stroke-opacity 0.2s;
+  }
+  .edge.copy { stroke-dasharray: 5 3; }
+  .node rect {
+    fill: var(--node-fill);
+    stroke: var(--node-stroke);
+    stroke-width: 1.2px;
+    cursor: default;
+    transition: fill 0.2s, stroke 0.2s, opacity 0.2s;
+  }
+  .node.process rect { cursor: pointer; }
+  .node.selected rect {
+    stroke: var(--heading-color);
+    stroke-width: 2px;
+  }
+  .node text {
+    fill: var(--text-color);
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .node .label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .node .filepath {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10.5px;
+    font-weight: 400;
+  }
+  .col-header {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    fill: var(--text-muted);
+    text-anchor: middle;
+  }
+  .tooltip {
+    position: absolute;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 280px;
+    line-height: 1.5;
+    z-index: 30;
+  }
+  .tooltip b { color: var(--heading-color); font-weight: 600; }
+  .tooltip .desc { color: var(--text-muted); }
+  .detail-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    padding: 10px 20px 14px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease, background 0.2s;
+    z-index: 20;
+    max-height: 50%;
+    overflow-y: auto;
+  }
+  .detail-panel.active { transform: translateY(0); }
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .detail-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--heading-color);
+  }
+  .detail-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+  .detail-close:hover { color: var(--text-color); }
+  .detail-body {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .detail-col { flex: 1; min-width: 0; }
+  .detail-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .detail-col pre {
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    margin: 0;
+    transition: background 0.2s;
+  }
+  .detail-col code {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--text-color);
+    white-space: pre;
+  }
+  .detail-arrow {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-top: 22px;
+    flex-shrink: 0;
+  }
+  .detail-explain {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .instructions {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.3s;
+    z-index: 10;
+  }
+  .instructions.hidden { opacity: 0; pointer-events: none; }
+  .theme-toggle {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--code-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+    z-index: 10;
+  }
+  .theme-toggle:hover { border-color: var(--text-color); }
+  [data-theme="light"] .moon { display: none; }
+  [data-theme="dark"] .sun { display: none; }
+  .center-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: var(--text-muted);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    z-index: 10;
+  }
+  .center-btn:hover { border-color: var(--text-color); color: var(--text-color); }
+  .embed .theme-toggle,
+  .embed .instructions { display: none; }
+  @media (max-width: 500px) {
+    .detail-body { flex-direction: column; }
+    .detail-arrow { display: none; }
+    .detail-panel { max-height: 60%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <span class="detail-title" id="detail-title"></span>
+    <button class="detail-close" onclick="closeDetail()">&#x2715;</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-col">
+      <div class="detail-label">Antes</div>
+      <pre><code id="detail-before"></code></pre>
+    </div>
+    <div class="detail-arrow">&rarr;</div>
+    <div class="detail-col">
+      <div class="detail-label">Depois</div>
+      <pre><code id="detail-after"></code></pre>
+    </div>
+  </div>
+  <p class="detail-explain" id="detail-explain"></p>
+</div>
+
+<div class="instructions" id="instructions">
+  Passe o mouse para detalhes · Clique em uma etapa para ver as transforma&ccedil;&otilde;es
+</div>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+  <svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  <svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
+
+<button class="center-btn" onclick="centerGraph()">Centralizar</button>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// --- Data ---
+const NW = 150, NH = 30, NR = 6;
+
+const nodes = [
+  { id: 'src-posts',     type: 'source',  label: 'posts/*.md',        x: 115, y: 90,
+    desc: 'Posts em Markdown organizados por idioma (en/, pt/). Cada um tem frontmatter YAML e corpo em markdown.' },
+  { id: 'src-pages',     type: 'source',  label: 'pages/*.md',        x: 115, y: 175,
+    desc: 'P\u00e1ginas avulsas como Sobre. Mesmo formato dos posts, mas n\u00e3o listadas na homepage.' },
+  { id: 'src-templates', type: 'source',  label: 'templates/',        x: 115, y: 340,
+    desc: 'Quatro templates HTML: base.html (shell), post.html, page.html, index.html. Sintaxe simples tipo mustache.' },
+  { id: 'src-static',    type: 'source',  label: 'static/',           x: 115, y: 475,
+    desc: 'CSS (Tufte + customizado), JavaScript, fontes e embeds interativos como este. Copiados para o output sem altera\u00e7\u00e3o.' },
+
+  { id: 'proc-frontmatter', type: 'process', label: 'Parse Frontmatter', x: 450, y: 90,
+    desc: 'Extrair metadados (t\u00edtulo, data, resumo, rascunho) do bloco YAML entre delimitadores ---.' },
+  { id: 'proc-markdown',    type: 'process', label: 'Markdown \u2192 HTML',   x: 450, y: 165,
+    desc: 'Converter sintaxe markdown para HTML. T\u00edtulos, negrito, links, listas, blocos de c\u00f3digo viram elementos HTML.' },
+  { id: 'proc-tufte',       type: 'process', label: 'Extens\u00f5es Tufte',  x: 450, y: 240,
+    desc: 'Transformar sintaxe customizada: {mn}\u2192margin notes, {sn}\u2192sidenotes numeradas, {nt}\u2192versaletes.' },
+  { id: 'proc-toc',         type: 'process', label: '\u00cdndice',            x: 450, y: 315,
+    desc: 'Escanear HTML buscando h2/h3. Se 3 ou mais forem encontrados, gerar navega\u00e7\u00e3o lateral com links \u00e2ncora.' },
+  { id: 'proc-template',    type: 'process', label: 'Renderizar Templates',  x: 450, y: 390,
+    desc: 'Preencher placeholders dos templates com valores. Template do post (t\u00edtulo, data, corpo), depois template base (header, nav, seletor de idioma).' },
+  { id: 'proc-listings',    type: 'process', label: '\u00cdndice & Feeds',    x: 450, y: 465,
+    desc: 'Coletar metadados de todos os posts, filtrar rascunhos, ordenar por data. Gerar listagem da homepage e feed Atom XML.' },
+
+  { id: 'out-posts',  type: 'output', label: 'posts/*.html', x: 810, y: 390,
+    desc: 'P\u00e1ginas de posts renderizadas, uma por post por idioma.' },
+  { id: 'out-index',  type: 'output', label: 'index.html',   x: 810, y: 465,
+    desc: 'Homepage com se\u00e7\u00e3o sobre e listagem cronol\u00f3gica de posts (rascunhos exclu\u00eddos).' },
+  { id: 'out-feed',   type: 'output', label: 'feed.xml',     x: 810, y: 520,
+    desc: 'Feed Atom para leitores RSS.' },
+  { id: 'out-static', type: 'output', label: 'static/',      x: 810, y: 555,
+    desc: 'Assets est\u00e1ticos copiados sem altera\u00e7\u00e3o para o diret\u00f3rio de output.' },
+];
+
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+const edges = [
+  { source: 'src-posts',        target: 'proc-frontmatter', type: 'horizontal' },
+  { source: 'src-pages',        target: 'proc-frontmatter', type: 'horizontal' },
+  { source: 'src-templates',    target: 'proc-template',    type: 'horizontal' },
+  { source: 'proc-frontmatter', target: 'proc-markdown',    type: 'vertical' },
+  { source: 'proc-markdown',    target: 'proc-tufte',       type: 'vertical' },
+  { source: 'proc-tufte',       target: 'proc-toc',         type: 'vertical' },
+  { source: 'proc-toc',         target: 'proc-template',    type: 'vertical' },
+  { source: 'proc-frontmatter', target: 'proc-listings',    type: 'branch' },
+  { source: 'proc-template',    target: 'out-posts',        type: 'horizontal' },
+  { source: 'proc-listings',    target: 'out-index',        type: 'horizontal' },
+  { source: 'proc-listings',    target: 'out-feed',         type: 'horizontal' },
+  { source: 'src-static',       target: 'out-static',       type: 'copy' },
+];
+
+// Compute SVG paths for edges
+edges.forEach(e => {
+  const s = nodeMap[e.source], t = nodeMap[e.target];
+  if (e.type === 'vertical') {
+    e.path = `M ${s.x},${s.y + NH/2} L ${t.x},${t.y - NH/2}`;
+  } else if (e.type === 'branch') {
+    const sx = s.x + NW/2, sy = s.y;
+    const tx = t.x + NW/2, ty = t.y;
+    e.path = `M ${sx},${sy} C ${sx + 70},${sy} ${tx + 70},${ty} ${tx},${ty}`;
+  } else {
+    const sx = s.x + NW/2, sy = s.y;
+    const tx = t.x - NW/2, ty = t.y;
+    e.path = d3.linkHorizontal()({ source: [sx, sy], target: [tx, ty] });
+  }
+});
+
+// Detail panel data for each processing step
+const detailData = {
+  'proc-frontmatter': {
+    title: 'Parse Frontmatter',
+    before: `---
+title: "Por que eu constru\u00ed este site"
+date: 2026-03-01
+excerpt: Eu queria o site mais simples...
+draft: true
+---
+
+## A pergunta
+
+Eu me pergunto h\u00e1 um bom tempo...`,
+    after: `metadata = {
+  title: "Por que eu constru\u00ed...",
+  date: "2026-03-01",
+  excerpt: "Eu queria o site...",
+  draft: true
+}
+
+body = "## A pergunta\\n\\n..."`,
+    explain: 'Divide no delimitador ---. Tudo entre eles vira metadados (pares chave: valor). Tudo depois vira o corpo markdown para processamento.'
+  },
+  'proc-markdown': {
+    title: 'Markdown \u2192 HTML',
+    before: `## A pergunta
+
+Eu me pergunto h\u00e1 um bom tempo:
+qual \u00e9 o jeito mais **simples**
+de ter um site pessoal?`,
+    after: `<h2>A pergunta</h2>
+
+<p>Eu me pergunto h\u00e1 um bom tempo:
+qual \u00e9 o jeito mais
+<strong>simples</strong>
+de ter um site pessoal?</p>`,
+    explain: 'T\u00edtulos, negrito, it\u00e1lico, links, listas, blocos de c\u00f3digo e tabelas s\u00e3o convertidos para os elementos HTML correspondentes.'
+  },
+  'proc-tufte': {
+    title: 'Extens\u00f5es Tufte',
+    before: `Margin notes aparecem no campo
+visual.{mn}Notas de rodap\u00e9
+for\u00e7am uma decis\u00e3o: vale a pena
+interromper a leitura?{/mn}`,
+    after: `Margin notes aparecem no campo
+visual.
+<label for="mn-1"
+  class="margin-toggle">\u2295</label>
+<input type="checkbox" id="mn-1"
+  class="margin-toggle"/>
+<span class="marginnote">Notas de
+rodap\u00e9 for\u00e7am uma decis\u00e3o: vale
+a pena interromper a
+leitura?</span>`,
+    explain: '{mn}\u2026{/mn} vira margin notes vis\u00edveis na lateral. {sn}\u2026{/sn} vira sidenotes numeradas. {nt}\u2026{/nt} vira versaletes (new thought).'
+  },
+  'proc-toc': {
+    title: '\u00cdndice',
+    before: `<h2>A pergunta</h2>
+...
+<h2>Por que n\u00e3o usar um gerador</h2>
+...
+<h2>O papel do Claude Code</h2>
+...
+<h2>Tufte</h2>`,
+    after: `<nav class="toc">
+ <ul class="toc-list">
+  <li class="toc-h2">
+   <a href="#a-pergunta">
+    A pergunta</a></li>
+  <li class="toc-h2">
+   <a href="#por-que-nao...">
+    Por que n\u00e3o usar...</a></li>
+  <li class="toc-h2">
+   <a href="#o-papel-do...">
+    O papel do Claude Code</a></li>
+ </ul>
+</nav>`,
+    explain: 'Extrai headings h2 e h3 do HTML. Se 3 ou mais forem encontrados, gera uma barra lateral fixa com links \u00e2ncora. Os headings recebem atributos id para navega\u00e7\u00e3o.'
+  },
+  'proc-template': {
+    title: 'Renderizar Templates',
+    before: `<!-- post.html -->
+<h1>{{title}}</h1>
+<p class="subtitle">
+  {{published_date}}</p>
+{{content}}
+
+<!-- base.html -->
+<a class="site-title">
+  {{site_title}}</a>
+{{#has_alternate}}
+  <a href="{{other_lang_url}}">
+{{/has_alternate}}`,
+    after: `<h1>Por que eu constru\u00ed este
+site do zero</h1>
+<p class="subtitle">
+  01 de mar\u00e7o de 2026</p>
+<section>
+  <h2>A pergunta</h2>
+  <p>Eu me pergunto...</p>
+</section>
+
+<a class="site-title">
+  Vitor Margato</a>
+<a href="/en/posts/...">`,
+    explain: 'Substitui {{placeholders}} por valores. Cada p\u00e1gina passa pelo template de conte\u00fado primeiro, depois \u00e9 envolvida pelo template base com header, navega\u00e7\u00e3o e seletor de idioma.'
+  },
+  'proc-listings': {
+    title: '\u00cdndice & Feeds',
+    before: `Metadados de todos os posts:
+[
+ { title: "EM e PM...",
+   date: "2026-02-27",
+   draft: false },
+ { title: "Por que eu constru\u00ed...",
+   date: "2026-03-01",
+   draft: true },
+ { title: "IA vai borrar...",
+   date: "2026-02-26",
+   draft: false }
+]`,
+    after: `<!-- index.html (rascunhos ocultos) -->
+<div class="post-item">
+ <h2>EM e PM: quem puxa
+  o qu\u00ea</h2>
+ <span>27 de fevereiro de 2026</span>
+</div>
+<div class="post-item">
+ <h2>IA vai borrar pap\u00e9is
+  adjacentes</h2>
+ <span>26 de fevereiro de 2026</span>
+</div>
+
+<!-- feed.xml -->
+<entry>
+ <title>EM e PM...</title>
+ <updated>2026-02-27</updated>
+</entry>`,
+    explain: 'Coleta metadados de todos os posts. Filtra rascunhos (ainda constru\u00eddos, mas ocultos), ordena por data (mais recente primeiro) e gera a listagem da homepage e o feed Atom XML.'
+  }
+};
+
+// --- SVG setup ---
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height)
+  .attr("viewBox", "0 0 960 580")
+  .attr("preserveAspectRatio", "xMidYMid meet");
+
+const g = svg.append("g");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.5, 3])
+  .on("zoom", (event) => g.attr("transform", event.transform));
+svg.call(zoom);
+
+// --- Column headers ---
+const headers = [
+  { label: 'FONTES', x: 115, y: 40 },
+  { label: 'PROCESSAMENTO', x: 450, y: 40 },
+  { label: 'SA\u00cdDAS', x: 810, y: 40 },
+];
+
+g.selectAll(".col-header")
+  .data(headers)
+  .join("text")
+  .attr("class", "col-header")
+  .attr("x", d => d.x)
+  .attr("y", d => d.y)
+  .text(d => d.label);
+
+g.append("text")
+  .attr("class", "col-header")
+  .attr("x", 450)
+  .attr("y", 53)
+  .style("font-size", "8px")
+  .style("font-weight", "400")
+  .style("letter-spacing", "0.05em")
+  .style("text-transform", "none")
+  .text("build.py");
+
+// --- Edges ---
+const edgeGroup = g.append("g");
+
+const edgePaths = edgeGroup.selectAll("path")
+  .data(edges)
+  .join("path")
+  .attr("class", d => "edge" + (d.type === "copy" ? " copy" : ""))
+  .attr("d", d => d.path);
+
+// --- Nodes ---
+const nodeGroup = g.append("g");
+
+const nodeGs = nodeGroup.selectAll("g")
+  .data(nodes)
+  .join("g")
+  .attr("class", d => "node " + d.type)
+  .attr("data-id", d => d.id)
+  .attr("transform", d => `translate(${d.x - NW/2}, ${d.y - NH/2})`);
+
+nodeGs.append("rect")
+  .attr("width", NW)
+  .attr("height", NH)
+  .attr("rx", NR);
+
+nodeGs.append("text")
+  .attr("class", d => d.type === 'process' ? 'label' : 'filepath')
+  .attr("x", NW / 2)
+  .attr("y", NH / 2 + 4)
+  .attr("text-anchor", "middle")
+  .text(d => d.label);
+
+// --- Interactions ---
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function getConnected(nodeId) {
+  const connected = new Set();
+  edges.forEach(e => {
+    if (e.source === nodeId) connected.add(e.target);
+    if (e.target === nodeId) connected.add(e.source);
+  });
+  return connected;
+}
+
+const tooltip = d3.select("#tooltip");
+
+nodeGs.on("mouseover", function(event, d) {
+  const connected = getConnected(d.id);
+
+  edgePaths
+    .attr("stroke-opacity", e =>
+      (e.source === d.id || e.target === d.id) ? 1 : 0.12)
+    .attr("stroke-width", e =>
+      (e.source === d.id || e.target === d.id) ? 2.5 : 1.5)
+    .attr("stroke", e =>
+      (e.source === d.id || e.target === d.id) ? cssVar('--link-hover') : cssVar('--link-color'));
+
+  nodeGs.select("rect").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15);
+  nodeGs.selectAll("text").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15);
+
+  tooltip
+    .html(`<b>${d.label}</b><br><span class="desc">${d.desc}</span>`)
+    .style("opacity", 1);
+  positionTooltip(event);
+})
+.on("mousemove", positionTooltip)
+.on("mouseout", function() {
+  edgePaths
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 1.5)
+    .attr("stroke", cssVar('--link-color'));
+  nodeGs.select("rect").attr("opacity", 1);
+  nodeGs.selectAll("text").attr("opacity", 1);
+  tooltip.style("opacity", 0);
+});
+
+function positionTooltip(event) {
+  let x = event.pageX + 14;
+  let y = event.pageY - 14;
+  const tt = tooltip.node();
+  const ttW = tt.offsetWidth, ttH = tt.offsetHeight;
+  if (x + ttW > width - 8) x = event.pageX - ttW - 14;
+  if (y + ttH > height - 8) y = height - ttH - 8;
+  if (y < 8) y = 8;
+  tooltip.style("left", x + "px").style("top", y + "px");
+}
+
+// Click on processing nodes to show detail
+let selectedNode = null;
+
+nodeGs.filter(d => d.type === 'process').on("click", function(event, d) {
+  event.stopPropagation();
+  if (detailData[d.id]) {
+    showDetail(d.id);
+  }
+});
+
+svg.on("click", function() {
+  closeDetail();
+});
+
+function showDetail(nodeId) {
+  const data = detailData[nodeId];
+  if (!data) return;
+  document.getElementById('detail-title').textContent = data.title;
+  document.getElementById('detail-before').textContent = data.before;
+  document.getElementById('detail-after').textContent = data.after;
+  document.getElementById('detail-explain').textContent = data.explain;
+  document.getElementById('detail-panel').classList.add('active');
+  document.getElementById('instructions').classList.add('hidden');
+
+  if (selectedNode) {
+    d3.select(`[data-id="${selectedNode}"]`).classed('selected', false);
+  }
+  selectedNode = nodeId;
+  d3.select(`[data-id="${nodeId}"]`).classed('selected', true);
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('active');
+  document.getElementById('instructions').classList.remove('hidden');
+  if (selectedNode) {
+    d3.select(`[data-id="${selectedNode}"]`).classed('selected', false);
+    selectedNode = null;
+  }
+}
+
+// --- Center / fit ---
+function centerGraph() {
+  const pad = 40;
+  const minX = d3.min(nodes, n => n.x - NW/2) - pad;
+  const maxX = d3.max(nodes, n => n.x + NW/2) + pad;
+  const minY = d3.min(nodes, n => n.y - NH/2) - pad - 20;
+  const maxY = d3.max(nodes, n => n.y + NH/2) + pad;
+  const gw = maxX - minX, gh = maxY - minY;
+  const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+
+  const vw = 960, vh = 580;
+  const scale = Math.min(vw / gw, vh / gh, 1.2) * 0.9;
+  const tx = vw / 2 - midX * scale;
+  const ty = vh / 2 - midY * scale;
+
+  svg.transition().duration(600).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+}
+
+centerGraph();
+</script>
+</body>
+</html>
