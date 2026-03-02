@@ -497,10 +497,12 @@ tr:last-child td {
         padding: 0.5rem 0;
     }
 
-    /* Header: tighter spacing */
+    /* Header: tighter spacing, reset the negative-margin trick
+       that extends the background for margin notes (not needed on mobile) */
     .site-header {
         padding: 0.75rem 0;
         margin-bottom: 1rem;
+        margin-right: 0;
     }
 
     .site-nav {
