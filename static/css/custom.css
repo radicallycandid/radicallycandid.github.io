@@ -196,6 +196,7 @@ hr {
     width: 40%;
     margin-right: -45%;
     max-width: 300px;
+    z-index: 0;
 }
 
 /* Dinkus separator between about and post list */
