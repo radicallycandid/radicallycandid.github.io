@@ -269,19 +269,28 @@ hr {
 .site-header {
     position: sticky;
     top: 0;
-    background-color: var(--bg-color);
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0 0 0;
     margin-bottom: 2rem;
     z-index: 100;
-    margin-right: -50%;
-    padding-right: 50%;
+}
+
+.site-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -100vw;
+    right: -100vw;
+    background-color: var(--bg-color);
+    z-index: -1;
 }
 
 .site-nav {
     display: flex;
     align-items: center;
     gap: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .site-title {
@@ -497,16 +506,15 @@ tr:last-child td {
         padding: 0.5rem 0;
     }
 
-    /* Header: tighter spacing, reset the negative-margin trick
-       that extends the background for margin notes (not needed on mobile) */
+    /* Header: tighter spacing on mobile */
     .site-header {
-        padding: 0.75rem 0;
+        padding: 0.75rem 0 0 0;
         margin-bottom: 1rem;
-        margin-right: 0;
     }
 
     .site-nav {
         gap: 1rem;
+        padding-bottom: 0.75rem;
     }
 
     .site-title {
