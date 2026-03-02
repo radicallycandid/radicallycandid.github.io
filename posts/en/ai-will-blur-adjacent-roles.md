@@ -73,9 +73,9 @@ Some of these adjacent-role combinations already exist, and they're worth examin
 
 **Full Stack Software Engineer** (FE + BE). This is probably the most mature example. The role has existed for years, and the trend is for it to simply become the default meaning of "Software Engineer" — or, alternatively, [Product Engineer](https://posthog.com/blog/what-is-a-product-engineer).
 
-**Data Engineer** (DP + AE). This hybrid role actually represents what used to be the default until a few years ago, when the data world split into "people who love Kafka and Airflow" vs. "people who love dbt" — or, put differently, "people who know a lot of Python and a little SQL" vs. "people who know a lot of SQL and a little Python." It's someone who can both build data infrastructure at scale and model data for consumption.
-
 **Design Engineer** (FE + PD). This is a more recent and increasingly interesting role that's gaining traction at some of the most innovative companies in the world, including [Cursor](https://cursor.com/careers/design-engineer) and [Vercel](https://vercel.com/careers/design-engineer-us-5709080004). It's someone who can both conceive an experience and turn it into production code, closing the gap between design intent and implementation and eliminating a handoff that's often problematic.
+
+**Data Engineer** (DP + AE). This hybrid role actually represents what used to be the default until a few years ago, when the data world split into "people who love Kafka and Airflow" vs. "people who love dbt" — or, put differently, "people who know a lot of Python and a little SQL" vs. "people who know a lot of SQL and a little Python." It's someone who can both build data infrastructure at scale and model data for consumption.
 
 Other hybrid roles won't necessarily get new names. For example, the PM + BA combination may keep the title Product Manager, while the AE + BA combination may keep the title Analytics Engineer or adopt another existing one, depending on the company.
 

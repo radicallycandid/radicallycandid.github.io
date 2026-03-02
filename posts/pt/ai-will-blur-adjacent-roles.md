@@ -73,9 +73,9 @@ Algumas dessas combinações de papéis adjacentes já existem, e vale a pena ol
 
 **Full Stack Software Engineer** (FE + BE). Esse talvez seja o exemplo mais maduro. É um papel que já existe há anos, e a tendência é que isso se torne simplesmente o significado padrão de Software Engineer, ou então de [Product Engineer](https://posthog.com/blog/what-is-a-product-engineer).
 
-**Data Engineer** (DP + AE). Essa posição híbrida representa algo que era o padrão até poucos anos atrás, quando o mundo de Dados passou a se distinguir entre "pessoas que amam Kafka e Airflow" vs. "pessoas que amam dbt", ou então entre "pessoas que entendem muito de Python e um pouco de SQL" vs. "pessoas que entendem muito de SQL e um pouco de Python". É alguém que consegue tanto construir a infraestrutura para dados em escala quanto modelar os dados para consumo.
-
 **Design Engineer** (FE + PD). Esse é um papel interessante e muito mais recente, que tem ganhado tração em algumas das empresas mais inovadoras do mundo, incluindo [Cursor](https://cursor.com/careers/design-engineer) e [Vercel](https://vercel.com/careers/design-engineer-us-5709080004). Representa alguém que consegue tanto conceber uma experiência quanto transformá-la em código em produção, fechando a lacuna entre intenção de design e implementação e eliminando um handoff frequentemente problemático.
+
+**Data Engineer** (DP + AE). Essa posição híbrida representa algo que era o padrão até poucos anos atrás, quando o mundo de Dados passou a se distinguir entre "pessoas que amam Kafka e Airflow" vs. "pessoas que amam dbt", ou então entre "pessoas que entendem muito de Python e um pouco de SQL" vs. "pessoas que entendem muito de SQL e um pouco de Python". É alguém que consegue tanto construir a infraestrutura para dados em escala quanto modelar os dados para consumo.
 
 Outros papéis híbridos não vão necessariamente ter novos termos associados. Por exemplo, a combinação PM + BA pode manter o título Product Manager, enquanto a combinação AE + BA pode manter o título Analytics Engineer ou assumir outro já existente, dependendo da empresa.
 

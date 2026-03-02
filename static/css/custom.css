@@ -45,8 +45,12 @@ body {
     color: var(--text-color);
 }
 
-/* Headings use the heading color (white in dark mode) */
+/* Headings and bold text use the heading color (black/white) */
 h1, h2, h3, h4, h5, h6 {
+    color: var(--heading-color);
+}
+
+strong, b {
     color: var(--heading-color);
 }
 
@@ -225,12 +229,6 @@ hr {
 
 .post-item {
     margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.post-item:last-child {
-    border-bottom: none;
 }
 
 .post-title {
