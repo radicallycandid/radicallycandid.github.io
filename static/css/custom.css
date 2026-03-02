@@ -220,6 +220,16 @@ hr {
     margin-top: 0.5rem;
 }
 
+/* End-of-article tombstone */
+.end-mark {
+    text-align: center;
+    width: 75%;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    margin: 2rem 0 0 0;
+    opacity: 0.6;
+}
+
 /* Index page styles */
 .post-list {
     list-style: none;
@@ -559,7 +569,8 @@ tr:last-child td {
         width: 100%;
     }
 
-    .graph-embed {
+    .graph-embed,
+    .end-mark {
         width: 100%;
     }
 
