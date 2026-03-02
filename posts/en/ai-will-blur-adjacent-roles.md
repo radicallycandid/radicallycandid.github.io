@@ -2,34 +2,37 @@
 title: "AI Will Blur Adjacent Roles, Not Dissolve All of Them"
 date: 2026-03-01
 excerpt: The "Product Builder" narrative gets it half right. AI does enable people to take on broader responsibilities. But the roles won't collapse into one.
-draft: true
 ---
 
-## The Product Builder narrative
+## The Product Builder Narrative
 
-There's a growing narrative in tech that AI will dissolve the boundaries between product development roles entirely. Product Managers, Software Engineers, Product Designers, Data Scientists — in this view, all of these are on their way to merging into a single role, often called the "Product Builder." Brian Balfour has written about how AI could restore the magic of early-stage startups, where everyone does a bit of everything. Microsoft's LinkedIn famously restructured around "full stack builders." The idea is seductive: AI lowers the barriers to entry in every discipline, so why not have everyone do everything?
+There's a growing narrative in tech that AI will dissolve the boundaries between product development roles entirely. In this view, Product Managers, Software Engineers, Product Designers, and other roles are all converging into one, often called the "Product Builder." If you work in tech and have been using tools like Claude Code to accomplish far more than you could before, this prediction feels both exciting and obvious. Concrete moves by companies like [LinkedIn](https://www.youtube.com/watch?v=R-zCfLQD_84) reinforce the thesis, the term already has its own [manifesto](https://productbuilder.community), and the idea that the division between "who understands the problem," "who designs the interface," and "who writes the code" is unnecessary overhead is being [articulated explicitly](https://labs.adaline.ai/p/redesigning-product-work-for-the-ai-era-in-2026).
 
-This narrative gets something right. AI does make it possible for individuals to stretch into areas that were previously out of reach. A Product Manager can now prototype a working interface. A designer can generate functional code. An engineer can analyze data without deep SQL expertise. The barriers are genuinely lower than they've ever been.
+This narrative gets something important right. AI really does make it possible for people to stretch into areas that were previously out of reach. A Product Manager can now prototype a working interface. A Product Designer can generate functional code outside of Figma. People across disciplines can analyze data without deep SQL expertise. For anyone with curiosity and initiative, the barriers are lower and the boundaries more fluid than they've ever been.
 
-But the conclusion that all roles will converge into one doesn't follow. It overestimates how far people can stretch, and it underestimates the depth required to do any of these jobs well.
+Still, I don't think the conclusion holds — at least not in large, mature companies — that all roles will converge into one. It overestimates people's capacity for cognitive and psychological adaptation, and it underestimates the depth required to do any of these jobs well in a professional context.
 
-## Specialization, coordination, and where the equilibrium shifts
+## Why Different Roles Exist
 
-The degree of role specialization in any organization is not arbitrary. It's the result of a tension between two forces. On one side, specialization creates value: a dedicated Back-End Engineer knows things about distributed systems that a generalist never will, and a Product Designer understands interaction patterns that an engineer shouldn't be expected to master. Deeper expertise means better decisions.
+The degree of role specialization in any organization isn't arbitrary. It's actually the result of a tension between two forces. On one side, specialization creates value: a Back-End Engineer knows how to solve distributed systems problems that would give a generalist serious headaches, and a Product Designer understands interaction patterns in ways you can't reasonably expect from an engineer. Greater depth leads to better decisions and better products.
 
-On the other side, specialization carries a cost: coordination between people. Every time a responsibility is split across two people, you introduce handoffs, misunderstandings, meetings, and delays. In a small startup, the cost of this coordination often exceeds the benefit of having specialists, which is why early-stage teams naturally tend toward generalism.
+On the other side, specialization has an important cost: coordination between people. Every time a responsibility is split across two people, you get handoffs, miscommunication, meetings, and delays. In a small startup, the cost of that coordination often exceeds the benefit of having specialists, which is why early-stage teams naturally lean toward generalist profiles. This is also part of why some people who thrive in small startups sometimes struggle as those companies grow.
 
-AI changes the balance of this tension. By lowering the barrier to competence in adjacent skills, AI makes it viable for one person to take on work that previously required two. When one person can do the work that previously required two to coordinate, organizations may choose to have fewer, broader roles — not because specialization has lost its value, but because the coordination cost of maintaining fine-grained specialization is no longer worth paying in every case.
+Increasingly capable AI tools and agents can shift where the sweet spot of this trade-off lies. By lowering the barrier to competence in adjacent skills and making self-directed learning easier, they make it viable for one person to take on work that previously required two. When a single person can do what used to demand coordination across a small group, companies may opt for broader, fewer roles. When that happens, it's not because specialization has become useless — it's because the coordination cost of maintaining a very fine-grained division of roles is no longer worth it.
 
-This is a real shift, but it's a shift at the margins. It pushes people toward being somewhat more generalist, not toward being fully generalist. The "Product Builder" narrative takes a real observation — the barriers are lower — and extrapolates it to an unrealistic conclusion: that the barriers will disappear.
+This shift feels real to me, and highly relevant to our careers. But in the short term — say, less than two years — I expect a less dramatic transformation than the "Product Builder" narrative suggests. In other words, in 2026 and 2027, I still believe we'll be talking about Software Engineers, Product Designers, and so on. Those who predict a complete merger of disciplines seem to overlook the fact that people have natural inclinations, cognitive profiles, and professional identities that make them better suited to some roles than others.
 
-They won't. People have natural dispositions, cognitive styles, and professional identities that make them better suited to some roles than others. The depth required to excel at Product Management is fundamentally different from the depth required to excel at Software Engineering. AI can help you become passable at an adjacent discipline. It cannot make you world-class at everything.
+## The Adjacent Roles Graph
 
-## The adjacent roles graph
+Instead of the "Product Builder" model, I want to propose a more realistic framework for thinking about how AI will reshape professional roles over the next few months to a few years.
 
-Instead of the "Product Builder" model, I want to propose a more realistic framework for thinking about how AI will reshape professional roles in the short term — over the next few months to a few years.
+<label for="mn-agi" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="mn-agi" class="margin-toggle"/>
+<span class="marginnote">My predictions don't apply to a post-AGI world. That's probably the best criticism of what I'm proposing here — after all, AI capabilities have been advancing impressively fast. Then again, this weakness isn't unique to me: which predictions about the current world are robust enough to survive AGI?</span>
 
-Consider the different specializations that exist in a modern product development organization. These roles are not all equally close to one another. A Front-End Engineer and a Product Designer work in overlapping territories every day. A Front-End Engineer and a Data Platform Engineer almost never do. The distance between roles matters.
+Consider the different roles that exist in a modern product development organization. These roles are not all equally close to one another. A Front-End Engineer and a Product Designer work in overlapping territory every day. That same Product Designer, on the other hand, has little in common with a Data Platform Engineer in terms of responsibilities and skills. The distance between roles matters.
+
+The graph below shows common roles and what I consider their most relevant adjacencies. It's intentionally simple and not exhaustive, prioritizing usefulness for the argument that follows. The inclusion of several data-related roles (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) reflects both my personal background and the fact that the conversation with a friend that inspired this post started by questioning how these roles exist today.
 
 <div class="graph-embed">
   <iframe src="/static/embeds/professions-graph-en.html?embed" title="Professions adjacency graph"></iframe>
@@ -48,42 +51,40 @@ Consider the different specializations that exist in a modern product developmen
 })();
 </script>
 
-This is what I call the adjacent roles graph. Each node represents a role that exists in many organizations today. The edges connect roles that are naturally close to one another — roles where the knowledge, skills, and daily work overlap significantly.
+<label for="mn-depth" class="margin-toggle">&#8853;</label>
+<input type="checkbox" id="mn-depth" class="margin-toggle"/>
+<span class="marginnote">AI also compresses the depth required within each specialty, not just the barriers between them. But this compression is asymmetric: agents automate execution far more than they replace judgment. And it's precisely in the judgment of knowing what (not) to build and what's wrong even when it looks right that the real difference between roles lives.</span>
 
-My thesis is simple: AI will gradually blur the boundaries between adjacent roles in this graph, without eliminating the roles themselves. The blurring will happen along the edges, not everywhere at once. A Product Designer will find it easier to take on Front-End Engineering work. An Analytics Engineer will absorb some of what Business Analysts do today. But a Product Designer will not suddenly become a Data Platform Engineer. The distance is too great.
+My thesis is simple: AI will gradually blur the boundaries between adjacent roles in this graph, without eliminating the roles themselves. The blurring will happen along the edges, not everywhere at once. A Product Designer will find it easier to take on Front-End Engineering work. An Analytics Engineer will absorb some of what Business Analysts do today, or vice versa. What I don't foresee is the rise of professionals who simultaneously perform a large collection of distant roles in this graph.
 
-## What this means for your career
+## What This Means for Your Career
 
-If you currently occupy a single node in this graph, you face a real risk — with some exceptions, typically tied to very specific business contexts (like credit risk) or to very senior individuals whose depth of expertise is itself irreplaceable. For most professionals, staying in a single node means that someone who can do your job *and* part of an adjacent one will be more valuable to employers.
+I'll be completely honest, knowing that some people who work in the organization I lead will read this. If you currently occupy a single node in this graph, I believe you face a real professional risk. (There are some exceptions, usually tied to very specific business contexts — like credit risk — or to very senior individuals whose depth of expertise is itself hard to replace.) For most professionals, staying in a single node means that someone who can do your job *and* at least part of an adjacent one will be more valuable to employers. While this was already true before, it's dramatically amplified by AI.
 
-My strong recommendation is to extend your skills toward an adjacent node. Not a distant one. Not three at once. Pick the neighbor that interests you most and that complements your current strengths, and build genuine competence there.
+My strong recommendation is to extend your skills toward an adjacent node. Pick the neighbor that interests you most or best complements your current strengths, and build genuine professional competence there as soon as you can.
 
-If you're already consolidated across two adjacent nodes, it is viable to reach for a third — but I'd caution that this is genuinely hard. The skills and even the psychological makeup required across three nodes are often quite different. Those who manage it will be exceptionally valuable, but it will remain rare.
+If you're already established across two adjacent nodes, it's viable to aim for a third — but I'd warn that this is genuinely hard. The skills and even the psychological profile required across three nodes are often quite different from one another. Those who manage it will be exceptionally valuable, but it will remain rare.
 
-I would not recommend aiming for four or more, and I would specifically advise against jumping to distant nodes. Traverse the graph along its edges. The value comes from combining adjacent skills, where the overlap creates something greater than the sum of the parts.
+I wouldn't recommend aiming for four or more, and I'd specifically advise against jumping to distant nodes. Traverse the graph along its edges. The greatest value comes from combining adjacent skills, where the overlap creates something greater than the sum of the parts.
 
-## Combinations that already have names
+## Role Combinations in Practice
 
-Some of these adjacent-role combinations are already well established, and it's worth looking at them as examples of what this graph predicts.
+Some of these adjacent-role combinations already exist, and they're worth examining as examples of what this graph predicts.
 
-**Software Engineer** (Front End + Back End). This is perhaps the most mature example. The "full stack" engineer has existed for years, and the trend is that this will simply become the default meaning of "Software Engineer." Some already call this a Product Engineer.
+**Full Stack Software Engineer** (FE + BE). This is probably the most mature example. The role has existed for years, and the trend is for it to simply become the default meaning of "Software Engineer" — or, alternatively, [Product Engineer](https://posthog.com/blog/what-is-a-product-engineer).
 
-**Design Engineer** (Product Designer + Front-End Engineer). This is a role that's gaining real traction. Someone who can both design an interface and build it, closing the gap between design intent and implementation.
+**Data Engineer** (DP + AE). This hybrid role actually represents what used to be the default until a few years ago, when the data world split into "people who love Kafka and Airflow" vs. "people who love dbt" — or, put differently, "people who know a lot of Python and a little SQL" vs. "people who know a lot of SQL and a little Python." It's someone who can both build data infrastructure at scale and model data for consumption.
 
-**Data Engineer** (Data Platform Engineer + Analytics Engineer). Someone who can both build the infrastructure for data at scale and model the data for consumption. The combination eliminates a handoff that has historically been a source of friction.
+**Design Engineer** (FE + PD). This is a more recent and increasingly interesting role that's gaining traction at some of the most innovative companies in the world, including [Cursor](https://cursor.com/careers/design-engineer) and [Vercel](https://vercel.com/careers/design-engineer-us-5709080004). It's someone who can both conceive an experience and turn it into production code, closing the gap between design intent and implementation and eliminating a handoff that's often problematic.
 
-**Decision Scientist** (Data Scientist + Business Analyst). Someone who combines statistical and machine learning expertise with business context and communication skills. Less focused on model building for its own sake, more on driving decisions.
+Other hybrid roles won't necessarily get new names. For example, the PM + BA combination may keep the title Product Manager, while the AE + BA combination may keep the title Analytics Engineer or adopt another existing one, depending on the company.
 
-**Analytics Engineer** of the future (Analytics Engineer + Business Analyst). As the tools for data modeling become more accessible, the Analytics Engineer naturally absorbs the analyst's role of making data ready for decision-making.
+The possible combination of Product Manager and Engineering Manager (PM + EM) is one of the most interesting mergers that could emerge, though I honestly don't know what it should be called. In practice, it's a less obvious pairing than it might seem, because the profiles and dispositions of people who gravitate toward these two roles tend to be quite different. Still, when it works, it appears to be one of the combinations that generates the most value for companies.
 
-**Data Scientist** of the future (Data Scientist + Analytics Engineer). A Data Scientist who also owns the data transformation and modeling layer, rather than depending on a separate team to prepare the data.
+Speaking of Engineering Managers — the trend toward leaner teams means less people-management overhead and more room for hands-on technical contribution. The "hands-on Engineering Manager" (e.g., EM + FE or EM + BE), who regularly codes alongside the team as part of their routine, is a natural expression of this shift. I see this favorably in the cases where it's possible, because staying close to the code and experiencing what it's like to develop in a particular context (codebase, domain, etc.) makes the EM better at the rest of their job too.
 
-Not every combination has a name yet, and that's fine. A Product Manager who absorbs the Business Analyst's depth is still a Product Manager — just a more analytically grounded one. The combination of Product Manager and Engineering Manager is one of the most interesting mergers that could emerge, though I'm honestly not sure what to call it. It's also one of the hardest, because the profiles and dispositions of people who gravitate toward these two roles tend to be quite different.
+## The Edges, Not the Center
 
-For Engineering Managers, the trend toward smaller teams means less people-management overhead and more room for hands-on technical contribution. The "hands-on Engineering Manager" or Tech Lead who codes alongside the team is a natural expression of this shift — and one I see very favorably, because staying close to the code makes the EM better at the rest of her job too.
+The "Product Builder" narrative imagines a future where all roles collapse into the center of the graph. I think what will actually happen is less dramatic but more interesting: the edges will get thicker, and adjacent roles will increasingly overlap. People will be able to — and will face competitive pressure to — stretch toward adjacent nodes and become more hybrid professionals. The trade-off between specialization and coordination doesn't disappear in a world with increasingly capable AI, but the equilibrium points undoubtedly shift toward favoring more versatile professionals.
 
-## The edges, not the center
-
-The "Product Builder" narrative imagines a future where all roles collapse into the center of the graph. I think what will actually happen is more interesting and more realistic: the edges will get thicker. Adjacent roles will increasingly overlap. People will stretch, selectively and deliberately, toward the nodes next to them.
-
-This isn't the story of specialization dying. It's the story of specialization becoming a little less narrow, one edge at a time.
+Those who hold leadership positions in product development organizations have a dual responsibility in the face of these changes. The first is to be honest about the direction the world — or at minimum, their specific company — is heading. That's what this post is trying to do. The second is to create the conditions for people to actually expand. That means, for example, investing in your team's learning and development, and rethinking how you hire and promote people. Telling people to "be more versatile" and leaving them to figure it out on their own isn't enough. If versatility is what will generate the most professional value going forward — and I firmly believe it is — then hiring processes that demand five years of experience in a specific language and performance reviews that only measure competencies in very narrow terms are counterproductive and harmful.
