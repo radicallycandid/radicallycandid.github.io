@@ -224,10 +224,9 @@ hr {
 .end-mark {
     text-align: center;
     width: 75%;
-    color: var(--text-muted);
-    font-size: 0.6rem;
+    color: var(--heading-color);
+    font-size: 1.2rem;
     margin: 2rem 0 0 0;
-    opacity: 0.6;
 }
 
 /* Index page styles */
