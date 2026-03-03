@@ -2,36 +2,7 @@
 
 import pytest
 
-from build import format_date, extract_headings, add_heading_ids, generate_toc_html
-
-
-class TestFormatDate:
-    """Tests for date formatting."""
-
-    def test_format_valid_date(self) -> None:
-        """Format a valid YYYY-MM-DD date."""
-        result = format_date("2026-01-10")
-        assert result == "January 10, 2026"
-
-    def test_format_different_months(self) -> None:
-        """Format dates with different months."""
-        assert format_date("2026-06-15") == "June 15, 2026"
-        assert format_date("2026-12-25") == "December 25, 2026"
-
-    def test_format_invalid_date_returns_original(self) -> None:
-        """Invalid date format returns the original string."""
-        result = format_date("not-a-date")
-        assert result == "not-a-date"
-
-    def test_format_wrong_format_returns_original(self) -> None:
-        """Wrong date format returns the original string."""
-        result = format_date("01/10/2025")
-        assert result == "01/10/2025"
-
-    def test_format_empty_string(self) -> None:
-        """Empty string returns empty string."""
-        result = format_date("")
-        assert result == ""
+from build import extract_headings, add_heading_ids, generate_toc_html
 
 
 class TestExtractHeadings:

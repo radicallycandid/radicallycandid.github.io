@@ -6,8 +6,8 @@ from pathlib import Path
 from build import format_date, get_other_lang, find_content_pairs
 
 
-class TestFormatDateI18n:
-    """Tests for locale-aware date formatting."""
+class TestFormatDate:
+    """Tests for date formatting across languages."""
 
     def test_format_date_english_default(self) -> None:
         """Default language is English."""
@@ -16,6 +16,15 @@ class TestFormatDateI18n:
     def test_format_date_english_explicit(self) -> None:
         """Explicit English formatting."""
         assert format_date("2026-02-21", "en") == "February 21, 2026"
+
+    def test_format_date_english_january(self) -> None:
+        """January formatting in English."""
+        assert format_date("2026-01-10") == "January 10, 2026"
+
+    def test_format_date_different_months_english(self) -> None:
+        """Format dates with various months in English."""
+        assert format_date("2026-06-15") == "June 15, 2026"
+        assert format_date("2026-12-25") == "December 25, 2026"
 
     def test_format_date_portuguese(self) -> None:
         """Portuguese date format: day de month de year."""
@@ -38,6 +47,14 @@ class TestFormatDateI18n:
         """Invalid date returns original regardless of language."""
         assert format_date("not-a-date", "pt") == "not-a-date"
         assert format_date("not-a-date", "en") == "not-a-date"
+
+    def test_format_date_wrong_format_returns_original(self) -> None:
+        """Non-ISO date format returns the original string."""
+        assert format_date("01/10/2025") == "01/10/2025"
+
+    def test_format_date_empty_string(self) -> None:
+        """Empty string returns empty string."""
+        assert format_date("") == ""
 
 
 class TestGetOtherLang:

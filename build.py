@@ -18,6 +18,7 @@ import http.server
 import re
 import shutil
 import socketserver
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
@@ -50,10 +51,13 @@ class FrontmatterError(BuildError):
     pass
 
 
-class TemplateError(BuildError):
-    """Error in template rendering."""
+@dataclass(frozen=True)
+class RenderResult:
+    """Values computed during content rendering."""
 
-    pass
+    title: str
+    description: str
+    output_name: str
 
 
 # =============================================================================
@@ -743,9 +747,10 @@ def _render_content(
     root: str,
     output_dir: Path,
     content_template: str,
-    og_type: str,
+    url_prefix: str,
+    og_type: str = "website",
     extra_template_vars: dict[str, object] | None = None,
-) -> None:
+) -> RenderResult:
     """
     Shared rendering logic for posts and pages.
 
@@ -760,8 +765,13 @@ def _render_content(
         root: Relative path to site root (e.g., "../../" or "../").
         output_dir: Directory to write the output file into.
         content_template: Name of the inner template (e.g., "post.html").
+        url_prefix: Path segment between /{lang}/ and {output_name} in URLs
+            (e.g., "posts/" for posts, "" for pages).
         og_type: Open Graph type ("article" or "website").
         extra_template_vars: Additional variables for the content template.
+
+    Returns:
+        RenderResult with computed title, description, and output filename.
     """
     title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
     subtitle = frontmatter.get("subtitle", "")
@@ -788,13 +798,9 @@ def _render_content(
 
     inner_html = render_template(content_template, content_vars)
 
-    # Compute URLs based on content type
-    if og_type == "article":
-        other_lang_url = f"{root}{other}/posts/{output_name}"
-        canonical_url = f"{SITE_URL}/{lang}/posts/{output_name}"
-    else:
-        other_lang_url = f"{root}{other}/{output_name}"
-        canonical_url = f"{SITE_URL}/{lang}/{output_name}"
+    # Compute URLs
+    other_lang_url = f"{root}{other}/{url_prefix}{output_name}"
+    canonical_url = f"{SITE_URL}/{lang}/{url_prefix}{output_name}"
 
     full_html = render_template(
         "base.html",
@@ -818,6 +824,8 @@ def _render_content(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(full_html)
     print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
+
+    return RenderResult(title=title, description=description, output_name=output_name)
 
 
 def build_post(
@@ -858,7 +866,7 @@ def build_post(
         file_mtime = datetime.fromtimestamp(md_path.stat().st_mtime)
         published_date = file_mtime.strftime(DATE_FORMAT_INPUT)
 
-    _render_content(
+    result = _render_content(
         md_path=md_path,
         lang=lang,
         has_alternate=has_alternate,
@@ -867,6 +875,7 @@ def build_post(
         root="../../",
         output_dir=OUTPUT_DIR / lang / "posts",
         content_template="post.html",
+        url_prefix="posts/",
         og_type="article",
         extra_template_vars={
             "published_date": format_date(published_date, lang),
@@ -874,16 +883,12 @@ def build_post(
         },
     )
 
-    title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
-    excerpt = frontmatter.get("excerpt", "")
-    output_name = md_path.stem + ".html"
-
     return {
-        "title": title,
+        "title": result.title,
         "published_date": published_date,
         "published_date_formatted": format_date(published_date, lang),
-        "excerpt": excerpt,
-        "url": f"posts/{output_name}",
+        "excerpt": result.description,
+        "url": f"posts/{result.output_name}",
         "path": md_path,
         "draft": frontmatter.get("draft", "").lower() == "true",
     }
@@ -941,6 +946,7 @@ def build_page(
     md_path: Path,
     lang: str,
     has_alternate: bool = False,
+    warnings: list[str] | None = None,
 ) -> None:
     """
     Build a single standalone page (e.g. About).
@@ -952,6 +958,7 @@ def build_page(
         md_path: Path to markdown source file.
         lang: Language code ("en" or "pt").
         has_alternate: Whether an alternate language version exists.
+        warnings: Optional list to collect validation warnings.
     """
     try:
         content = md_path.read_text()
@@ -959,6 +966,9 @@ def build_page(
         raise BuildError(f"Cannot read {md_path}: {e}") from e
 
     frontmatter, body = parse_frontmatter(content, md_path)
+
+    if warnings is not None:
+        warnings.extend(validate_frontmatter(frontmatter, md_path))
 
     _render_content(
         md_path=md_path,
@@ -969,7 +979,7 @@ def build_page(
         root="../",
         output_dir=OUTPUT_DIR / lang,
         content_template="page.html",
-        og_type="website",
+        url_prefix="",
     )
 
 
@@ -1073,6 +1083,82 @@ def clean() -> None:
         print("Nothing to clean.")
 
 
+def _validate_build_dirs() -> bool:
+    """Check that required source directories exist."""
+    if not TEMPLATES_DIR.exists():
+        print(f"Error: Templates directory not found: {TEMPLATES_DIR}")
+        return False
+    if not STATIC_DIR.exists():
+        print(f"Error: Static directory not found: {STATIC_DIR}")
+        return False
+    return True
+
+
+def _prepare_output_dir() -> None:
+    """Clean and recreate output directory, then copy static assets."""
+    if OUTPUT_DIR.exists():
+        shutil.rmtree(OUTPUT_DIR)
+    OUTPUT_DIR.mkdir()
+    copy_static()
+
+
+def _build_language(
+    lang: str,
+    post_pairs: dict[str, dict[str, Path]],
+    page_pairs: dict[str, dict[str, Path]],
+    warnings: list[str],
+    errors: list[str],
+) -> tuple[int, int]:
+    """Build all content for a single language. Return (post_count, page_count)."""
+    print(f"  [{lang.upper()}]")
+
+    # Build posts
+    posts: list[dict[str, object]] = []
+    for _slug, lang_paths in sorted(post_pairs.items()):
+        if lang not in lang_paths:
+            continue
+        has_alternate = get_other_lang(lang) in lang_paths
+        try:
+            post_meta = build_post(lang_paths[lang], lang, has_alternate, warnings)
+            posts.append(post_meta)
+        except BuildError as e:
+            errors.append(str(e))
+            print(f"    Error: {e}")
+
+    # Filter drafts and build index
+    public_posts = [p for p in posts if not p.get("draft")]
+    build_index(public_posts, lang)
+
+    # Build standalone pages (about is inlined on the homepage)
+    page_count = 0
+    for slug, lang_paths in sorted(page_pairs.items()):
+        if slug == "about":
+            continue
+        if lang not in lang_paths:
+            continue
+        has_alternate = get_other_lang(lang) in lang_paths
+        try:
+            build_page(lang_paths[lang], lang, has_alternate, warnings)
+            page_count += 1
+        except BuildError as e:
+            errors.append(str(e))
+            print(f"    Error: {e}")
+
+    # Build Atom feed
+    if public_posts:
+        build_feed(public_posts, lang)
+
+    return len(posts), page_count
+
+
+def _copy_cname() -> None:
+    """Copy CNAME file for GitHub Pages if it exists."""
+    cname_path = ROOT_DIR / "CNAME"
+    if cname_path.exists():
+        shutil.copy2(cname_path, OUTPUT_DIR / "CNAME")
+        print("  Copied: CNAME")
+
+
 def build() -> bool:
     """
     Build the entire site in all configured languages.
@@ -1083,91 +1169,35 @@ def build() -> bool:
     print("Building site...")
     print()
 
+    if not _validate_build_dirs():
+        return False
+
     warnings: list[str] = []
     errors: list[str] = []
 
-    # Validate required directories
-    if not TEMPLATES_DIR.exists():
-        print(f"Error: Templates directory not found: {TEMPLATES_DIR}")
-        return False
+    _prepare_output_dir()
 
-    if not STATIC_DIR.exists():
-        print(f"Error: Static directory not found: {STATIC_DIR}")
-        return False
-
-    # Clean and create output directory
-    if OUTPUT_DIR.exists():
-        shutil.rmtree(OUTPUT_DIR)
-    OUTPUT_DIR.mkdir()
-
-    # Copy static files (shared across languages)
-    copy_static()
-
-    # Find content pairs across languages
     post_pairs = find_content_pairs(POSTS_DIR)
     page_pairs = find_content_pairs(PAGES_DIR)
 
     total_posts = 0
     total_pages = 0
-
     for lang in LANGUAGES:
-        print(f"  [{lang.upper()}]")
+        posts, pages = _build_language(
+            lang, post_pairs, page_pairs, warnings, errors
+        )
+        total_posts += posts
+        total_pages += pages
 
-        # Build posts for this language
-        posts: list[dict[str, object]] = []
-        for _slug, lang_paths in sorted(post_pairs.items()):
-            if lang not in lang_paths:
-                continue
-            has_alternate = get_other_lang(lang) in lang_paths
-            try:
-                post_meta = build_post(lang_paths[lang], lang, has_alternate, warnings)
-                posts.append(post_meta)
-            except BuildError as e:
-                errors.append(str(e))
-                print(f"    Error: {e}")
-
-        # Filter out drafts from public listings
-        public_posts = [p for p in posts if not p.get("draft")]
-
-        # Build index
-        build_index(public_posts, lang)
-        total_posts += len(posts)
-
-        # Build standalone pages (about is inlined on the homepage)
-        for slug, lang_paths in sorted(page_pairs.items()):
-            if slug == "about":
-                continue
-            if lang not in lang_paths:
-                continue
-            has_alternate = get_other_lang(lang) in lang_paths
-            try:
-                build_page(lang_paths[lang], lang, has_alternate)
-                total_pages += 1
-            except BuildError as e:
-                errors.append(str(e))
-                print(f"    Error: {e}")
-
-        # Build Atom feed
-        if public_posts:
-            build_feed(public_posts, lang)
-
-    # Build root redirect
     build_root_redirect()
+    _copy_cname()
 
-    # Copy CNAME for GitHub Pages custom domain
-    cname_path = ROOT_DIR / "CNAME"
-    if cname_path.exists():
-        shutil.copy2(cname_path, OUTPUT_DIR / "CNAME")
-        print("  Copied: CNAME")
-
-    # Print warnings
     if warnings:
         print()
         print("Warnings:")
         for warning in warnings:
             print(f"  - {warning}")
 
-    # Print summary
     print()
     if errors:
         print(f"Build completed with {len(errors)} error(s).")
