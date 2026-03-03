@@ -734,6 +734,92 @@ def find_content_pairs(content_dir: Path) -> dict[str, dict[str, Path]]:
 # =============================================================================
 
 
+def _render_content(
+    md_path: Path,
+    lang: str,
+    has_alternate: bool,
+    frontmatter: dict[str, str],
+    body: str,
+    root: str,
+    output_dir: Path,
+    content_template: str,
+    og_type: str,
+    extra_template_vars: dict[str, object] | None = None,
+) -> None:
+    """
+    Shared rendering logic for posts and pages.
+
+    Converts markdown to HTML, generates ToC, renders templates, writes output.
+
+    Args:
+        md_path: Path to markdown source file (for deriving output name).
+        lang: Language code ("en" or "pt").
+        has_alternate: Whether an alternate language version exists.
+        frontmatter: Parsed frontmatter dictionary.
+        body: Markdown body content.
+        root: Relative path to site root (e.g., "../../" or "../").
+        output_dir: Directory to write the output file into.
+        content_template: Name of the inner template (e.g., "post.html").
+        og_type: Open Graph type ("article" or "website").
+        extra_template_vars: Additional variables for the content template.
+    """
+    title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
+    subtitle = frontmatter.get("subtitle", "")
+    description = frontmatter.get("description", frontmatter.get("excerpt", ""))
+
+    body_html, headings = markdown_to_html(body)
+    toc_html = generate_toc_html(headings)
+    has_toc = len(headings) >= MIN_HEADINGS_FOR_TOC
+
+    other = get_other_lang(lang)
+    output_name = md_path.stem + ".html"
+
+    # Build content template context
+    content_vars: dict[str, object] = {
+        "title": title,
+        "subtitle": subtitle,
+        "body": body_html,
+        "toc": toc_html,
+        "has_toc": has_toc,
+        "root": root,
+    }
+    if extra_template_vars:
+        content_vars.update(extra_template_vars)
+
+    inner_html = render_template(content_template, content_vars)
+
+    # Compute URLs based on content type
+    if og_type == "article":
+        other_lang_url = f"{root}{other}/posts/{output_name}"
+        canonical_url = f"{SITE_URL}/{lang}/posts/{output_name}"
+    else:
+        other_lang_url = f"{root}{other}/{output_name}"
+        canonical_url = f"{SITE_URL}/{lang}/{output_name}"
+
+    full_html = render_template(
+        "base.html",
+        {
+            "title": title,
+            "content": inner_html,
+            "description": description,
+            "og_type": og_type,
+            "root": root,
+            "lang": lang,
+            "other_lang": other,
+            "has_alternate": has_alternate,
+            "other_lang_url": other_lang_url,
+            "lang_flag": LANG_FLAGS[other],
+            "home_url": f"{root}{lang}/index.html",
+            "canonical_url": canonical_url,
+        },
+    )
+
+    output_path = output_dir / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(full_html)
+    print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
+
+
 def build_post(
     md_path: Path,
     lang: str,
@@ -766,66 +852,31 @@ def build_post(
     if warnings is not None:
         warnings.extend(validate_frontmatter(frontmatter, md_path))
 
-    # Extract metadata
-    title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
-    subtitle = frontmatter.get("subtitle", "")
-    excerpt = frontmatter.get("excerpt", "")
-
-    # Get dates
+    # Date handling with mtime fallback
     published_date = frontmatter.get("date", "")
     if not published_date:
         file_mtime = datetime.fromtimestamp(md_path.stat().st_mtime)
         published_date = file_mtime.strftime(DATE_FORMAT_INPUT)
 
-    # Convert body to HTML
-    body_html, headings = markdown_to_html(body)
-
-    # Generate table of contents
-    toc_html = generate_toc_html(headings)
-    has_toc = len(headings) >= MIN_HEADINGS_FOR_TOC
-
-    # i18n
-    strings = I18N[lang]
-    other = get_other_lang(lang)
-    output_name = md_path.stem + ".html"
-
-    # Render templates
-    post_content = render_template(
-        "post.html",
-        {
-            "title": title,
-            "subtitle": subtitle,
+    _render_content(
+        md_path=md_path,
+        lang=lang,
+        has_alternate=has_alternate,
+        frontmatter=frontmatter,
+        body=body,
+        root="../../",
+        output_dir=OUTPUT_DIR / lang / "posts",
+        content_template="post.html",
+        og_type="article",
+        extra_template_vars={
             "published_date": format_date(published_date, lang),
-            "body": body_html,
-            "toc": toc_html,
-            "has_toc": has_toc,
-            "root": "../../",
+            "published_date_iso": published_date,
         },
     )
 
-    full_html = render_template(
-        "base.html",
-        {
-            "title": title,
-            "content": post_content,
-            "description": excerpt,
-            "og_type": "article",
-            "root": "../../",
-            "lang": lang,
-            "other_lang": other,
-            "has_alternate": has_alternate,
-            "other_lang_url": f"../../{other}/posts/{output_name}",
-            "lang_flag": LANG_FLAGS[other],
-            "home_url": f"../../{lang}/index.html",
-        },
-    )
-
-    # Write output
-    output_path = OUTPUT_DIR / lang / "posts" / output_name
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(full_html)
-
-    print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
+    title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
+    excerpt = frontmatter.get("excerpt", "")
+    output_name = md_path.stem + ".html"
 
     return {
         "title": title,
@@ -860,6 +911,8 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
         about_html, _ = markdown_to_html(about_body)
 
     index_content = render_template("index.html", {"posts": posts, "about_html": about_html})
+    canonical_url = f"{SITE_URL}/{lang}/"
+
     full_html = render_template(
         "base.html",
         {
@@ -874,6 +927,7 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
             "other_lang_url": f"../{other}/index.html",
             "lang_flag": LANG_FLAGS[other],
             "home_url": f"../{lang}/index.html",
+            "canonical_url": canonical_url,
         },
     )
 
@@ -906,51 +960,17 @@ def build_page(
 
     frontmatter, body = parse_frontmatter(content, md_path)
 
-    title = frontmatter.get("title", md_path.stem.replace("-", " ").title())
-    subtitle = frontmatter.get("subtitle", "")
-    description = frontmatter.get("description", frontmatter.get("excerpt", ""))
-
-    body_html, headings = markdown_to_html(body)
-    toc_html = generate_toc_html(headings)
-    has_toc = len(headings) >= MIN_HEADINGS_FOR_TOC
-
-    strings = I18N[lang]
-    other = get_other_lang(lang)
-    output_name = md_path.stem + ".html"
-
-    page_content = render_template(
-        "page.html",
-        {
-            "title": title,
-            "subtitle": subtitle,
-            "body": body_html,
-            "toc": toc_html,
-            "has_toc": has_toc,
-            "root": "../",
-        },
+    _render_content(
+        md_path=md_path,
+        lang=lang,
+        has_alternate=has_alternate,
+        frontmatter=frontmatter,
+        body=body,
+        root="../",
+        output_dir=OUTPUT_DIR / lang,
+        content_template="page.html",
+        og_type="website",
     )
-
-    full_html = render_template(
-        "base.html",
-        {
-            "title": title,
-            "content": page_content,
-            "description": description,
-            "og_type": "website",
-            "root": "../",
-            "lang": lang,
-            "other_lang": other,
-            "has_alternate": has_alternate,
-            "other_lang_url": f"../{other}/{output_name}",
-            "lang_flag": LANG_FLAGS[other],
-            "home_url": f"../{lang}/index.html",
-        },
-    )
-
-    output_path = OUTPUT_DIR / lang / (md_path.stem + ".html")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(full_html)
-    print(f"  Built: {output_path.relative_to(ROOT_DIR)}")
 
 
 def build_feed(posts: list[dict[str, object]], lang: str) -> None:

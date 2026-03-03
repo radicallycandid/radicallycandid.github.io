@@ -8,6 +8,9 @@
     <meta property="og:title" content="{{title}} - Vitor Margato">
     <meta property="og:description" content="{{description}}">
     <meta property="og:type" content="{{og_type}}">
+    {{#canonical_url}}<link rel="canonical" href="{{canonical_url}}">{{/canonical_url}}
+    {{#canonical_url}}<meta property="og:url" content="{{canonical_url}}">{{/canonical_url}}
+    <meta name="twitter:card" content="summary">
     {{#has_alternate}}<link rel="alternate" hreflang="{{other_lang}}" href="{{other_lang_url}}">{{/has_alternate}}
     <link rel="alternate" type="application/atom+xml" title="Feed" href="{{root}}{{lang}}/feed.xml">
     <link rel="stylesheet" href="{{root}}static/css/tufte.css">

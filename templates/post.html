@@ -7,7 +7,7 @@
     <h1>{{title}}</h1>
     {{#subtitle}}<p class="subtitle">{{subtitle}}</p>{{/subtitle}}
     <p class="post-meta">
-        <span class="post-date">{{published_date}}</span>
+        <time class="post-date" datetime="{{published_date_iso}}">{{published_date}}</time>
     </p>
     <section>
         {{body}}

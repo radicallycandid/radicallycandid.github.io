@@ -10,7 +10,7 @@
             <li class="post-item">
                 <h2 class="post-title"><a href="{{url}}">{{title}}</a></h2>
                 <span class="post-meta">
-                    <span class="post-date">{{published_date_formatted}}</span>
+                    <time class="post-date" datetime="{{published_date}}">{{published_date_formatted}}</time>
                 </span>
                 {{#excerpt}}<p class="post-excerpt">{{excerpt}}</p>{{/excerpt}}
             </li>
