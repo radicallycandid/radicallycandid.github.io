@@ -24,15 +24,11 @@ This shift feels real to me, and highly relevant to our careers. But in the shor
 
 ## The Adjacent Roles Graph
 
-Instead of the "Product Builder" model, I want to propose a more realistic framework for thinking about how AI will reshape professional roles over the next few months to a few years.
-
-<label for="mn-agi" class="margin-toggle">&#8853;</label>
-<input type="checkbox" id="mn-agi" class="margin-toggle"/>
-<span class="marginnote">My predictions don't apply to a post-AGI world. That's probably the best criticism of what I'm proposing here: after all, AI capabilities have been advancing impressively fast. Then again, this weakness isn't unique to me: which predictions about the current world are robust enough to survive AGI?</span>
+Instead of the "Product Builder" model, I want to propose a more realistic framework for thinking about how AI will reshape professional roles over the next few months to a few years.{sn}My predictions don't apply to a post-AGI world. That's probably the best criticism of what I'm proposing here: after all, AI capabilities have been advancing impressively fast. Then again, this weakness isn't unique to me: which predictions about the current world are robust enough to survive AGI?{/sn}
 
 Consider the different roles that exist in a modern product development organization. These roles are not all equally close to one another. A Front-End Engineer and a Product Designer work in overlapping territory every day. That same Product Designer, on the other hand, has little in common with a Data Platform Engineer in terms of responsibilities and skills. The distance between roles matters.
 
-The graph below shows common roles and what I consider their most relevant adjacencies. It's intentionally simple and not exhaustive, prioritizing usefulness for the argument that follows.{mn}For instance, the graph doesn't include Site Reliability Engineer (SRE), which would be a node connected to SW Engineer (Back End), or the emerging and increasingly relevant role of AI Engineer, which could connect to both Data Scientist and SW Engineer (Back End).{/mn} The inclusion of several data-related roles (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) reflects both my personal background and the fact that the conversation with a friend that inspired this post started by questioning how these roles are divided today.
+The graph below shows common roles and what I consider their most relevant adjacencies. It's intentionally simple and not exhaustive, prioritizing usefulness for the argument that follows.{sn}For instance, the graph doesn't include Site Reliability Engineer (SRE), which would be a node connected to SW Engineer (Back End), or the emerging and increasingly relevant role of AI Engineer, which could connect to both Data Scientist and SW Engineer (Back End).{/sn} The inclusion of several data-related roles (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) reflects both my personal background and the fact that the conversation with a friend that inspired this post started by questioning how these roles are divided today.
 
 <div class="graph-embed">
   <iframe src="/static/embeds/professions-graph-en.html?embed" title="Professions adjacency graph"></iframe>
@@ -51,11 +47,7 @@ The graph below shows common roles and what I consider their most relevant adjac
 })();
 </script>
 
-<label for="mn-depth" class="margin-toggle">&#8853;</label>
-<input type="checkbox" id="mn-depth" class="margin-toggle"/>
-<span class="marginnote">AI also compresses the depth required within each specialty, not just the barriers between them. But this compression is asymmetric: agents automate execution far more than they replace judgment. The real difference between roles lives in the judgment of knowing what (not) to build and what's wrong even when it looks right.</span>
-
-My argument is simple: AI will gradually blur the boundaries between adjacent roles in this graph, without eliminating the roles themselves. The blurring will happen along the edges, not everywhere at once. A Product Designer will find it easier to take on Front-End Engineering work. An Analytics Engineer will absorb some of what Business Analysts do today, or vice versa. What I don't foresee is the rise of professionals who simultaneously perform a large collection of distant roles in this graph.
+My argument is simple: AI will gradually blur the boundaries between adjacent roles in this graph, without eliminating the roles themselves.{sn}AI also compresses the depth required within each specialty, not just the barriers between them. But this compression is asymmetric: agents automate execution far more than they replace judgment. The real difference between roles lives in the judgment of knowing what (not) to build and what's wrong even when it looks right.{/sn} The blurring will happen along the edges, not everywhere at once. A Product Designer will find it easier to take on Front-End Engineering work. An Analytics Engineer will absorb some of what Business Analysts do today, or vice versa. What I don't foresee is the rise of professionals who simultaneously perform a large collection of distant roles in this graph.
 
 ## What This Means for Your Career
 

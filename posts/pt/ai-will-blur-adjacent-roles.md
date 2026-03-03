@@ -24,15 +24,11 @@ Essa mudança me parece real e muito relevante para a nossa carreira, mas, pelo 
 
 ## O grafo dos papéis adjacentes
 
-Em vez do modelo do "Product Builder", quero propor um framework mais realista para pensar sobre como a IA vai remodelar os papéis profissionais nos próximos meses ou poucos anos.
-
-<label for="mn-agi" class="margin-toggle">&#8853;</label>
-<input type="checkbox" id="mn-agi" class="margin-toggle"/>
-<span class="marginnote">Minhas previsões não se aplicam a um mundo pós-AGI. Essa talvez seja a melhor crítica ao que eu proponho neste texto, afinal as capacidades dos modelos de IA vêm progredindo impressionantemente rápido. Por outro lado, essa fraqueza não é só minha: quais previsões sobre o mundo atual são robustas e válidas pós-AGI?</span>
+Em vez do modelo do "Product Builder", quero propor um framework mais realista para pensar sobre como a IA vai remodelar os papéis profissionais nos próximos meses ou poucos anos.{sn}Minhas previsões não se aplicam a um mundo pós-AGI. Essa talvez seja a melhor crítica ao que eu proponho neste texto, afinal as capacidades dos modelos de IA vêm progredindo impressionantemente rápido. Por outro lado, essa fraqueza não é só minha: quais previsões sobre o mundo atual são robustas e válidas pós-AGI?{/sn}
 
 Vamos considerar alguns papéis diferentes que existem em uma organização moderna de desenvolvimento de produto. Esses papéis não são todos igualmente próximos entre si. Uma Software Engineer focada em front end e uma Product Designer trabalham em territórios que se sobrepõem todos os dias. Essa Product Designer, por outro lado, tem pouco em comum com uma Data Platform Engineer em termos de atribuições e habilidades. A distância entre os papéis importa.
 
-O grafo a seguir mostra papéis comuns e suas adjacências mais relevantes na minha opinião. Ele é propositalmente simples e não exaustivo, priorizando o uso no argumento que vem a seguir.{mn}Por exemplo, o grafo não inclui Site Reliability Engineer (SRE), que seria um nó conectado ao de SW Engineer (Back End), nem o papel emergente e cada vez mais relevante de AI Engineer, que poderia se conectar tanto ao de Data Scientist quanto ao de SW Engineer (Back End).{/mn} A inclusão de vários papéis ligados a Dados (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) tem a ver com a minha bagagem pessoal e também com o fato de que a conversa com um amigo que inspirou este texto começou justamente questionando esses papéis como existem hoje.
+O grafo a seguir mostra papéis comuns e suas adjacências mais relevantes na minha opinião. Ele é propositalmente simples e não exaustivo, priorizando o uso no argumento que vem a seguir.{sn}Por exemplo, o grafo não inclui Site Reliability Engineer (SRE), que seria um nó conectado ao de SW Engineer (Back End), nem o papel emergente e cada vez mais relevante de AI Engineer, que poderia se conectar tanto ao de Data Scientist quanto ao de SW Engineer (Back End).{/sn} A inclusão de vários papéis ligados a Dados (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) tem a ver com a minha bagagem pessoal e também com o fato de que a conversa com um amigo que inspirou este texto começou justamente questionando esses papéis como existem hoje.
 
 <div class="graph-embed">
   <iframe src="/static/embeds/professions-graph-pt.html?embed" title="Grafo de adjacência de profissões"></iframe>
@@ -51,11 +47,7 @@ O grafo a seguir mostra papéis comuns e suas adjacências mais relevantes na mi
 })();
 </script>
 
-<label for="mn-depth" class="margin-toggle">&#8853;</label>
-<input type="checkbox" id="mn-depth" class="margin-toggle"/>
-<span class="marginnote">A IA também tem o efeito de comprimir a profundidade necessária para cada especialidade, não só as barreiras entre elas. Mas essa compressão é assimétrica, porque os agentes automatizam a execução muito mais que substituem julgamento. É nesse julgamento de saber o que (não) construir e o que está errado mesmo parecendo certo que a diferença entre os papéis realmente mora.</span>
-
-Minha tese é simples: a IA vai gradualmente diluir as fronteiras entre papéis adjacentes nesse grafo, sem eliminar os papéis em si. A diluição vai acontecer ao longo das arestas, não em todos os lugares ao mesmo tempo. Uma Product Designer vai achar mais fácil assumir trabalhos de Software Engineering ligados a front end. Uma Analytics Engineer vai absorver parte do que Business Analysts fazem hoje, ou vice-versa. Por outro lado, não prevejo a ascensão de profissionais que fazem, ao mesmo tempo, uma grande coleção de papéis distantes nesse grafo.
+Minha tese é simples: a IA vai gradualmente diluir as fronteiras entre papéis adjacentes nesse grafo, sem eliminar os papéis em si.{sn}A IA também tem o efeito de comprimir a profundidade necessária para cada especialidade, não só as barreiras entre elas. Mas essa compressão é assimétrica, porque os agentes automatizam a execução muito mais que substituem julgamento. É nesse julgamento de saber o que (não) construir e o que está errado mesmo parecendo certo que a diferença entre os papéis realmente mora.{/sn} A diluição vai acontecer ao longo das arestas, não em todos os lugares ao mesmo tempo. Uma Product Designer vai achar mais fácil assumir trabalhos de Software Engineering ligados a front end. Uma Analytics Engineer vai absorver parte do que Business Analysts fazem hoje, ou vice-versa. Por outro lado, não prevejo a ascensão de profissionais que fazem, ao mesmo tempo, uma grande coleção de papéis distantes nesse grafo.
 
 ## O que isso significa para a sua carreira
 
