@@ -1115,7 +1115,7 @@ def build() -> bool:
 
         # Build posts for this language
         posts: list[dict[str, object]] = []
-        for slug, lang_paths in sorted(post_pairs.items()):
+        for _slug, lang_paths in sorted(post_pairs.items()):
             if lang not in lang_paths:
                 continue
             has_alternate = get_other_lang(lang) in lang_paths
