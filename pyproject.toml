@@ -16,6 +16,9 @@ dev = [
     "pytest-cov>=4.0",
 ]
 
+[tool.setuptools]
+py-modules = ["build"]
+
 [project.scripts]
 site-build = "build:main"
 
