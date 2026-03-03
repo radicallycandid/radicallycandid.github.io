@@ -146,3 +146,16 @@ Second paragraph."""
         text = "[Click here](https://example.com)"
         result = basic_markdown_to_html(text)
         assert '<a href="https://example.com">Click here</a>' in result
+
+    def test_code_block_with_special_language(self) -> None:
+        """Code blocks accept language tags with special characters."""
+        text = "```c++\nint main() {}\n```"
+        result = basic_markdown_to_html(text)
+        assert "<pre><code>" in result
+        assert "int main() {}" in result
+
+    def test_bold_italic_combined(self) -> None:
+        """***bold italic*** produces nested strong and em."""
+        text = "***bold italic***"
+        result = basic_markdown_to_html(text)
+        assert "<strong><em>bold italic</em></strong>" in result

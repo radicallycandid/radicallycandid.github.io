@@ -102,6 +102,15 @@ class TestExtractHeadings:
         assert len(headings) == 1
         assert headings[0]["text"] == "Section"
 
+    def test_duplicate_heading_ids_get_suffixed(self) -> None:
+        """Duplicate heading texts get unique suffixed IDs."""
+        html = "<h2>Examples</h2><p>Text</p><h2>Examples</h2>"
+        headings = extract_headings(html)
+
+        assert len(headings) == 2
+        assert headings[0]["id"] == "examples"
+        assert headings[1]["id"] == "examples-1"
+
 
 class TestAddHeadingIds:
     """Tests for adding IDs to headings."""

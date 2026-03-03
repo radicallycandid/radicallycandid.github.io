@@ -323,14 +323,15 @@ def basic_markdown_to_html(text: str) -> str:
         code_blocks.append(match.group(2))
         return f"__CODE_BLOCK_{len(code_blocks) - 1}__"
 
-    text = re.sub(r"```(\w*)\n(.*?)```", save_code_block, text, flags=re.DOTALL)
+    text = re.sub(r"```([^\n]*)\n(.*?)```", save_code_block, text, flags=re.DOTALL)
 
     # Headers (process h3 before h2 before h1 to avoid conflicts)
     text = re.sub(r"^### (.+)$", r"<h3>\1</h3>", text, flags=re.MULTILINE)
     text = re.sub(r"^## (.+)$", r"<h2>\1</h2>", text, flags=re.MULTILINE)
     text = re.sub(r"^# (.+)$", r"<h1>\1</h1>", text, flags=re.MULTILINE)
 
-    # Bold and italic
+    # Bold and italic (process *** before ** before * to handle combined correctly)
+    text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
 
@@ -509,6 +510,13 @@ def extract_headings(html: str) -> list[dict[str, str | int]]:
         else:
             heading_id = re.sub(r"[^\w\s-]", "", clean_text.lower())
             heading_id = re.sub(r"[\s]+", "-", heading_id)
+
+        # Deduplicate IDs
+        base_id = heading_id
+        counter = 1
+        while any(h["id"] == heading_id for h in headings):
+            heading_id = f"{base_id}-{counter}"
+            counter += 1
 
         headings.append({"level": level, "id": heading_id, "text": clean_text})
 
