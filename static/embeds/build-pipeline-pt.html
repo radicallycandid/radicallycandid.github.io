@@ -366,38 +366,40 @@ const detailData = {
   'proc-frontmatter': {
     title: 'Parse Frontmatter',
     before: `---
-title: "Por que eu constru\u00ed este site"
-date: 2026-03-01
-excerpt: Eu queria o site mais simples...
+title: "Como este site funciona"
+date: 2026-03-03
+excerpt: Um \u00fanico script Python...
 draft: true
 ---
 
-## A pergunta
+## Um script
 
-Eu me pergunto h\u00e1 um bom tempo...`,
+Este site inteiro \u00e9 gerado...`,
     after: `metadata = {
-  title: "Por que eu constru\u00ed...",
-  date: "2026-03-01",
-  excerpt: "Eu queria o site...",
+  title: "Como este site funciona",
+  date: "2026-03-03",
+  excerpt: "Um \u00fanico script...",
   draft: true
 }
 
-body = "## A pergunta\\n\\n..."`,
+body = "## Um script\\n\\n..."`,
     explain: 'Divide no delimitador ---. Tudo entre eles vira metadados (pares chave: valor). Tudo depois vira o corpo markdown para processamento.'
   },
   'proc-markdown': {
     title: 'Markdown \u2192 HTML',
-    before: `## A pergunta
+    before: `## Um script
 
-Eu me pergunto h\u00e1 um bom tempo:
-qual \u00e9 o jeito mais **simples**
-de ter um site pessoal?`,
-    after: `<h2>A pergunta</h2>
+Este site inteiro \u00e9 gerado por
+um \u00fanico script Python. Cerca de
+1.300 linhas. Uma depend\u00eancia
+de runtime (\`markdown\`).`,
+    after: `<h2>Um script</h2>
 
-<p>Eu me pergunto h\u00e1 um bom tempo:
-qual \u00e9 o jeito mais
-<strong>simples</strong>
-de ter um site pessoal?</p>`,
+<p>Este site inteiro \u00e9 gerado por
+um \u00fanico script Python. Cerca de
+1.300 linhas. Uma depend\u00eancia
+de runtime (<code>markdown</code>
+).</p>`,
     explain: 'T\u00edtulos, negrito, it\u00e1lico, links, listas, blocos de c\u00f3digo e tabelas s\u00e3o convertidos para os elementos HTML correspondentes.'
   },
   'proc-tufte': {
@@ -420,24 +422,24 @@ leitura?</span>`,
   },
   'proc-toc': {
     title: '\u00cdndice',
-    before: `<h2>A pergunta</h2>
+    before: `<h2>Um script</h2>
 ...
-<h2>Por que n\u00e3o usar um gerador</h2>
+<h2>Markdown entra, HTML sai</h2>
 ...
-<h2>O papel do Claude Code</h2>
+<h2>Extens\u00f5es Tufte</h2>
 ...
-<h2>Tufte</h2>`,
+<h2>O motor de templates</h2>`,
     after: `<nav class="toc">
  <ul class="toc-list">
   <li class="toc-h2">
-   <a href="#a-pergunta">
-    A pergunta</a></li>
+   <a href="#um-script">
+    Um script</a></li>
   <li class="toc-h2">
-   <a href="#por-que-nao...">
-    Por que n\u00e3o usar...</a></li>
+   <a href="#markdown-entra...">
+    Markdown entra, HTML sai</a></li>
   <li class="toc-h2">
-   <a href="#o-papel-do...">
-    O papel do Claude Code</a></li>
+   <a href="#extensoes-tufte">
+    Extens\u00f5es Tufte</a></li>
  </ul>
 </nav>`,
     explain: 'Extrai headings h2 e h3 do HTML. Se 3 ou mais forem encontrados, gera uma barra lateral fixa com links \u00e2ncora. Os headings recebem atributos id para navega\u00e7\u00e3o.'
@@ -456,13 +458,12 @@ leitura?</span>`,
 {{#has_alternate}}
   <a href="{{other_lang_url}}">
 {{/has_alternate}}`,
-    after: `<h1>Por que eu constru\u00ed este
-site do zero</h1>
+    after: `<h1>Como este site funciona</h1>
 <p class="subtitle">
-  01 de mar\u00e7o de 2026</p>
+  3 de mar\u00e7o de 2026</p>
 <section>
-  <h2>A pergunta</h2>
-  <p>Eu me pergunto...</p>
+  <h2>Um script</h2>
+  <p>Este site inteiro \u00e9...</p>
 </section>
 
 <a class="site-title">
@@ -477,8 +478,8 @@ site do zero</h1>
  { title: "EM e PM...",
    date: "2026-02-27",
    draft: false },
- { title: "Por que eu constru\u00ed...",
-   date: "2026-03-01",
+ { title: "Como este site...",
+   date: "2026-03-03",
    draft: true },
  { title: "IA vai borrar...",
    date: "2026-02-26",

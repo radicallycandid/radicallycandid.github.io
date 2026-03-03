@@ -367,39 +367,40 @@ const detailData = {
   'proc-frontmatter': {
     title: 'Parse Frontmatter',
     before: `---
-title: "Why I Built This Site"
-date: 2026-03-01
-excerpt: I wanted the simplest...
+title: "How This Site Works"
+date: 2026-03-03
+excerpt: A single Python script...
 draft: true
 ---
 
-## The Question
+## One Script
 
-I've been asking myself...`,
+This entire site is generated...`,
     after: `metadata = {
-  title: "Why I Built This Site",
-  date: "2026-03-01",
-  excerpt: "I wanted the simplest...",
+  title: "How This Site Works",
+  date: "2026-03-03",
+  excerpt: "A single Python script...",
   draft: true
 }
 
-body = "## The Question\\n\\n..."`,
+body = "## One Script\\n\\n..."`,
     explain: 'Split at --- delimiters. Everything between them becomes metadata (key: value pairs). Everything after becomes the markdown body for further processing.'
   },
   'proc-markdown': {
     title: 'Markdown \u2192 HTML',
-    before: `## The Question
+    before: `## One Script
 
-I've been asking myself this
-for a while: what's the
-**simplest** way to have a
-personal site?`,
-    after: `<h2>The Question</h2>
+This entire site is generated
+by a single Python script.
+About 1,300 lines. One runtime
+dependency (\`markdown\`).`,
+    after: `<h2>One Script</h2>
 
-<p>I've been asking myself this
-for a while: what's the
-<strong>simplest</strong> way
-to have a personal site?</p>`,
+<p>This entire site is generated
+by a single Python script.
+About 1,300 lines. One runtime
+dependency (<code>markdown</code>
+).</p>`,
     explain: 'Headers, bold, italic, links, lists, code blocks, and tables are converted to their corresponding HTML elements.'
   },
   'proc-tufte': {
@@ -421,24 +422,24 @@ breaking my reading flow?</span>`,
   },
   'proc-toc': {
     title: 'Table of Contents',
-    before: `<h2>The Question</h2>
+    before: `<h2>One Script</h2>
 ...
-<h2>Why Not Use a Generator</h2>
+<h2>Markdown In, HTML Out</h2>
 ...
-<h2>Claude Code's Role</h2>
+<h2>Tufte Extensions</h2>
 ...
-<h2>Tufte</h2>`,
+<h2>The Template Engine</h2>`,
     after: `<nav class="toc">
  <ul class="toc-list">
   <li class="toc-h2">
-   <a href="#the-question">
-    The Question</a></li>
+   <a href="#one-script">
+    One Script</a></li>
   <li class="toc-h2">
-   <a href="#why-not-use...">
-    Why Not Use...</a></li>
+   <a href="#markdown-in...">
+    Markdown In, HTML Out</a></li>
   <li class="toc-h2">
-   <a href="#claude-codes-role">
-    Claude Code's Role</a></li>
+   <a href="#tufte-extensions">
+    Tufte Extensions</a></li>
  </ul>
 </nav>`,
     explain: 'Extracts h2 and h3 headings from the HTML. If 3 or more are found, generates a fixed sidebar with anchor links. Headings get id attributes for navigation.'
@@ -457,13 +458,12 @@ breaking my reading flow?</span>`,
 {{#has_alternate}}
   <a href="{{other_lang_url}}">
 {{/has_alternate}}`,
-    after: `<h1>Why I Built This Site
-from Scratch</h1>
+    after: `<h1>How This Site Works</h1>
 <p class="subtitle">
-  March 01, 2026</p>
+  March 03, 2026</p>
 <section>
-  <h2>The Question</h2>
-  <p>I've been asking...</p>
+  <h2>One Script</h2>
+  <p>This entire site is...</p>
 </section>
 
 <a class="site-title">
@@ -478,8 +478,8 @@ from Scratch</h1>
  { title: "EM and PM...",
    date: "2026-02-27",
    draft: false },
- { title: "Why I Built...",
-   date: "2026-03-01",
+ { title: "How This Site...",
+   date: "2026-03-03",
    draft: true },
  { title: "AI Will Blur...",
    date: "2026-02-26",
