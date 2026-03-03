@@ -34,9 +34,11 @@ html {
     font-size: 15px;
 }
 
-/* Prevent horizontal overflow from sidenotes */
-body {
-    overflow-x: hidden;
+/* Prevent horizontal overflow from sidenotes and full-width pseudo-elements.
+   clip instead of hidden: doesn't create a scroll container, works reliably
+   on iOS Safari, and doesn't interfere with position: sticky. */
+html, body {
+    overflow-x: clip;
 }
 
 /* Apply theme colors */
@@ -302,8 +304,9 @@ hr {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -100vw;
-    right: -100vw;
+    /* Extend to viewport edges: body padding-left is 12.5vw, no padding-right */
+    left: -12.5vw;
+    right: 0;
     background-color: var(--bg-color);
     z-index: -1;
 }
@@ -480,6 +483,12 @@ tr:last-child td {
         margin-right: 2rem;
         max-width: 1000px;
     }
+
+    /* Header at 300px–1300px, extend ::before to viewport edges */
+    .site-header::before {
+        left: -300px;
+        right: calc(1300px - 100vw);
+    }
 }
 
 /* Embedded interactive graph */
@@ -500,6 +509,12 @@ tr:last-child td {
 
 /* Responsive adjustments for mobile */
 @media (max-width: 760px) {
+    /* Body padding is 8% each side; extend ::before to viewport edges */
+    .site-header::before {
+        left: -8vw;
+        right: -8vw;
+    }
+
     /* Bump font size back up for readability on small screens.
        Desktop uses 12px (compact for ToC layout); mobile needs ~15px. */
     html {
