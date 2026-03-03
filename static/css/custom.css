@@ -154,6 +154,20 @@ pre > code {
     transform: scale(1.1);
 }
 
+.theme-toggle:focus-visible,
+.lang-toggle:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
+}
+
+.toc-list a:focus-visible,
+.nav-links a:focus-visible,
+.site-title:focus-visible,
+.post-title a:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
+}
+
 .lang-toggle svg {
     display: block;
     width: 18px;

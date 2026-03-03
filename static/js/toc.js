@@ -62,8 +62,10 @@
             const href = link.getAttribute('href');
             if (href === '#' + id) {
                 link.classList.add('active');
+                link.setAttribute('aria-current', 'true');
             } else {
                 link.classList.remove('active');
+                link.removeAttribute('aria-current');
             }
         });
     }
