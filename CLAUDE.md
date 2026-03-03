@@ -2,7 +2,7 @@
 
 ## Project
 
-vmargato.com — a personal blog built on a custom static site generator. No framework. No CMS. One Python script (`build.py`, ~1200 lines) that converts Markdown to HTML.
+vmargato.com — a personal blog built on a custom static site generator. No framework. No CMS. One Python script (`build.py`, ~1300 lines) that converts Markdown to HTML.
 
 Live at **vmargato.com**, deployed via GitHub Pages.
 
@@ -70,61 +70,26 @@ build.py                    The entire build system
 - `ruff` for linting, `mypy` for type checking (strict mode).
 - Python >= 3.10, single runtime dependency (`markdown>=3.4`).
 
-## Known technical debt
+## Known limitations
 
-### Medium: `build.py` architecture
+Things to be aware of when modifying the codebase. All have been reviewed and intentionally accepted as-is for a single-site personal blog.
 
-- **Path construction scattered.** `"../../"`, `"../"`, `"posts/"` hardcoded across `build_post()`, `build_page()`, `build_index()`, and `_render_content()`. No path helper or URL builder.
-- **`build_index()` re-reads about.md** every time it is called (once per language) instead of receiving or caching it. Two file reads is negligible.
+### Regex and template engine
 
-### Medium: fragile regex patterns in `build.py`
+- **No nesting.** Sidenote/marginnote regex (`{sn}...{/sn}`) and template block regex (`{{#key}}...{{/key}}`) both use non-greedy `.*?`. Nesting the same tag type will match incorrectly. No content or template uses nesting, so this is fine.
+- **Template values are trusted.** No `{{` escaping, no HTML escaping. All context values (titles, excerpts, body) pass through raw. Safe because all content is author-controlled.
+- **Loop items must be dicts.** Passing strings or primitives to `{{#key}}...{{/key}}` loops produces unresolved placeholders.
 
-- Sidenote/marginnote regex (`.*?` non-greedy) doesn't handle nesting (`{sn}outer {sn}inner{/sn}{/sn}` matches the first `{sn}` to the first `{/sn}`, leaving a trailing `{/sn}` as literal text). No real use case for nested sidenotes.
-- Template block regex has the same nesting limitation for blocks with the same key name. No template uses this pattern.
-- Table parsing (fallback parser) assumes row 2 is always the separator with no validation. Only affects the fallback when the `markdown` library is unavailable.
+### URL construction
 
-### Medium: template engine limitations
+Filesystem paths use `Path` objects and are centralized at the top of `build.py`. URL-relative paths (`root="../../"`, `root="../"`, `url_prefix="posts/"`) are hardcoded in 3 call sites (`build_post`, `build_page`, `build_index`). Works correctly, but adding a new content type would mean adding another hardcoded root.
 
-- No escaping: values containing `{{` create invalid syntax.
-- Loop items must be dicts (strings/primitives produce raw template text with unresolved placeholders).
-- Missing template files throw raw `FileNotFoundError` with no context.
-- No HTML escaping (intentional for body content, but means all context values including titles and excerpts are trusted).
+### Test coverage
 
-### Medium: frontend gaps
+106 tests pass. Well-covered: frontmatter parsing, markdown conversion, Tufte extensions, template rendering, i18n, heading extraction, all build functions, and the full pipeline. Still untested: `clean()`, `serve()`, `main()` (simple wrappers with minimal logic).
 
-**CSS:**
-- Dead CSS in tufte.css: `.danger`, `.numeral`, `.epigraph`, `.sans`, `.table-wrapper` are unused. ToC default width `280px` in custom.css is also dead (sidebar is `display: none` by default, only shown at 1440px+ where width is `260px`).
-- No tablet breakpoint (jumps from mobile at 760px to desktop at 1440px).
-- Magic number: `scrollY + 100` in toc.js `setInitialActive()` vs named constant `HEADER_OFFSET = 80` used elsewhere in the same file.
+### Frontend
 
-**JS:**
-- `IntersectionObserver` (toc.js) has no feature-detection guard. Low practical impact (supported since Safari 12.1/2019).
-
-**Templates:**
-- Hardcoded "Feed" string in base.html `<link>` title is English-only (not localized for PT).
-- No `og:image` meta tag (social shares have title/description but no preview image). Other social tags (`og:title`, `og:description`, `og:type`, `og:url`, `twitter:card`) are present.
-
-### Medium: hardcoded configuration
-
-All settings live as Python constants in `build.py` with no config file or env var override: `SITE_TITLE`, `SITE_URL`, `MIN_HEADINGS_FOR_TOC`, `DEFAULT_SERVER_PORT`, `DATE_FORMAT_INPUT`, `DATE_FORMAT_OUTPUT`, `PT_MONTHS`, `LANG_FLAGS`, template names, output path structure. Not a problem today (single site), but makes the SSG impossible to reuse without editing source.
-
-### Medium: test coverage gaps
-
-106 tests pass. Well-covered: frontmatter parsing, basic markdown, Tufte extensions, template rendering, i18n, heading extraction, `build_post()`, `build_page()`, `build_index()`, `build_feed()`, `copy_static()`, `build_root_redirect()`, `_render_content()` URL construction, and full `build()` pipeline. Still untested: `clean()`, `serve()`, `main()`. Internal helpers (`_convert_lists()`, `_convert_tables()`, `_wrap_paragraphs()`) have indirect coverage only through `basic_markdown_to_html` tests.
-
-### Low: external dependencies not pinned
-
-- D3.js loaded as `d3.v7.min.js` (no patch version) in all 4 embed files. Behavior could change silently.
-- Google Fonts loaded via `@import` in custom.css (render-blocking, no preconnect) and via `<link>` in all 4 embed files.
-
-### Low: embed accessibility
-
-- SVG graphs have no ARIA labels (`role`, `aria-label`, `<title>`/`<desc>`) on the `<svg>` element or child nodes, in any of the 4 embeds.
-- No keyboard navigation for draggable/clickable graph elements (no `tabindex`, no keydown handlers).
-- Instructions hidden in embed mode (`display: none`) with no visually-hidden alternative for screen readers.
-
-### Low: minor code smells
-
-- Sidenote counter uses `list [0]` closure pattern instead of `nonlocal` (inconsistent with `add_heading_ids` which uses `nonlocal`).
-- Scattered `print()` statements (25+) instead of structured logging.
-- `os.chdir(OUTPUT_DIR)` in `serve()` mutates process-level state.
+- No `og:image` meta tag. Social shares show title/description but no preview image.
+- D3.js loaded as `d3.v7.min.js` (major version only) in all 4 embed files.
+- SVG graphs in embeds have no ARIA labels or keyboard navigation.
