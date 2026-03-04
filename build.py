@@ -628,6 +628,8 @@ def markdown_to_html(text: str) -> tuple[str, list[dict[str, str | int]]]:
 # Template Rendering
 # =============================================================================
 
+_template_cache: dict[str, str] = {}
+
 
 def render_template(template_name: str, context: dict[str, object]) -> str:
     """
@@ -645,7 +647,10 @@ def render_template(template_name: str, context: dict[str, object]) -> str:
         Rendered HTML string.
     """
     template_path = TEMPLATES_DIR / template_name
-    template = template_path.read_text()
+    cache_key = str(template_path)
+    if cache_key not in _template_cache:
+        _template_cache[cache_key] = template_path.read_text()
+    template = _template_cache[cache_key]
 
     def render_content(content: str, ctx: dict[str, object]) -> str:
         def replace_block(match: re.Match[str]) -> str:
@@ -1168,6 +1173,8 @@ def build() -> bool:
     """
     print("Building site...")
     print()
+
+    _template_cache.clear()
 
     if not _validate_build_dirs():
         return False

@@ -2,18 +2,42 @@
 title: "Como este site funciona"
 date: 2026-03-03
 draft: true
-excerpt: Um único script Python, uma dependência, e muitas opiniões sobre como texto deveria ser apresentado na web.
+excerpt: Um gerador de sites estático customizado em 1.300 linhas de Python. Uma dependência, quatro templates, e um pipeline de build que transforma Markdown num site bilíngue.
 ---
 
-## Um script
+## Um gerador de sites estático
 
-Este site inteiro é gerado por um único script Python. Cerca de 1.300 linhas. Uma dependência de runtime (`markdown`). Sem framework, sem CMS, sem pipeline de build com uma dúzia de ferramentas encadeadas.
+Este site roda sobre um gerador de sites estático customizado: um único script Python chamado `build.py`, com cerca de 1.300 linhas. Ele tem uma dependência de runtime (`markdown`) e três comandos: `python build.py` para gerar o site, `python build.py serve` para iniciar um servidor local, e `python build.py clean` para limpar o diretório de saída.
 
-O script lê arquivos Markdown, interpreta seus metadados, converte para HTML, aplica templates e escreve a saída. Rode `python build.py` e você tem um site estático completo numa pasta chamada `output/`. É isso.{mn}Tem também `python build.py serve` para um servidor local de desenvolvimento e `python build.py clean` para limpar o diretório de saída. Três comandos no total.{/mn}
+O conceito é o mesmo do Hugo, Jekyll ou Eleventy: pegar arquivos de texto, interpretar seus metadados, converter para HTML, envolvê-los em templates e gravar o resultado como arquivos estáticos. A diferença é o escopo. Hugo é um binário em Go com sistema de plugins, ecossistema de temas, taxonomias e centenas de opções de configuração. Jekyll precisa de Ruby e uma cadeia de dependências de gems. Aqui é um script único com exatamente as funcionalidades que um site precisa, nada mais.{mn}Os motores de template também diferem. Hugo usa Go templates, Jekyll usa Liquid, Eleventy usa Nunjucks. Este site usa um motor caseiro que suporta dois construtos: substituição de variáveis e blocos condicionais/de loop.{/mn}
 
-Eu construí tudo com o Claude Code. Não só o site, o gerador em si. Eu definia o que queria, revisava o que ele produzia, testava, pedia ajustes. O resultado é algo que eu entendo completamente e consigo modificar sem consultar documentação de um framework que vou esquecer até o ano que vem.
+## Estrutura do repositório
 
-O diagrama abaixo mostra o pipeline completo: como os arquivos fonte passam pelo script de build até virar o site final. Clique em qualquer etapa de processamento para ver uma transformação concreta de antes e depois.
+O diagrama abaixo mostra como os arquivos fonte se conectam através do `build.py` até a saída final. Passe o mouse sobre qualquer nó para rastrear suas conexões.
+
+<div class="graph-embed" style="height: 650px;">
+  <iframe src="/static/embeds/repo-architecture-pt.html?embed" title="Visualização da arquitetura do repositório"></iframe>
+</div>
+<script>
+(function() {
+  var iframe = document.querySelector('.graph-embed iframe[src*="repo-architecture"]');
+  var observer = new MutationObserver(function() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    if (iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
+    }
+  });
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+
+O conteúdo é escrito em `posts/` e `pages/`, dividido por idioma nos subdiretórios `en/` e `pt/`. Os templates definem a estrutura HTML. Os assets estáticos (CSS, JavaScript, fontes, embeds interativos) passam sem alteração. O diretório `output/` é efêmero e está no gitignore.
+
+## O pipeline de build
+
+Para cada idioma, o `build.py` executa uma sequência de transformações em cada arquivo Markdown: interpreta o frontmatter, converte Markdown para HTML, aplica as extensões Tufte, extrai cabeçalhos para o índice de conteúdo, e depois renderiza o resultado em duas passagens de template (template de conteúdo primeiro, template base depois). Depois que todos os posts e páginas são gerados, ele monta a homepage, o feed Atom, copia os assets estáticos e cria uma página de redirecionamento na raiz.
+
+O diagrama abaixo mostra essas etapas de processamento em detalhe. Clique em qualquer etapa para ver uma transformação concreta de antes e depois.
 
 <div class="graph-embed" style="height: 650px;">
   <iframe src="/static/embeds/build-pipeline-pt.html?embed" title="Visualização do pipeline de build"></iframe>
@@ -31,7 +55,7 @@ O diagrama abaixo mostra o pipeline completo: como os arquivos fonte passam pelo
 })();
 </script>
 
-## Markdown entra, HTML sai
+## Conteúdo e frontmatter
 
 Todo post começa como um arquivo Markdown com metadados no estilo YAML no topo:
 
@@ -39,17 +63,17 @@ Todo post começa como um arquivo Markdown com metadados no estilo YAML no topo:
 ---
 title: "Como este site funciona"
 date: 2026-03-03
-excerpt: Um único script Python...
+excerpt: Um gerador de sites estático customizado...
 ---
 
 O conteúdo real aqui.
 ```
 
-O script de build interpreta isso dividindo o conteúdo pelas cercas `---`, extraindo pares de chave e valor, e depois passando o corpo para a biblioteca `markdown` do Python.{mn}Na verdade existe um conversor de fallback completo embutido no script para quando a biblioteca não está instalada. Ele lida com cabeçalhos, negrito, itálico, blocos de código, links, listas e tabelas. Desnecessário na prática, mas significa que o gerador tem zero dependências obrigatórias.{/mn} O resultado é HTML padrão, que então passa por três transformações específicas do Tufte.
+O script de build interpreta isso dividindo pelas cercas `---`, extraindo pares de chave e valor, e depois passando o corpo para a biblioteca `markdown` do Python com extensões de blocos de código, tabelas e índice de conteúdo habilitadas.{mn}Existe um conversor de fallback completo embutido no script para quando a biblioteca não está instalada. Ele lida com cabeçalhos, negrito, itálico, blocos de código, links, listas e tabelas. Desnecessário na prática, mas significa que o gerador tem zero dependências obrigatórias.{/mn} O resultado é HTML padrão, que então passa por três transformações específicas do Tufte.
 
 ## Extensões Tufte
 
-Eu conheci o Edward Tufte lendo *The Visual Display of Quantitative Information* na faculdade. As ideias dele sobre densidade informacional e minimizar o supérfluo foram fundamentais na minha carreira em ciência de dados. O Tufte CSS traduz essa filosofia para a web, e este site o estende com três sintaxes customizadas no Markdown:
+O Tufte CSS traduz os princípios de design informacional de Edward Tufte para a web: alta densidade informacional, mínimo de ruído visual, e sidenotes em vez de notas de rodapé. Este site o estende com três sintaxes customizadas no Markdown:
 
 **Sidenotes** (`{sn}...{/sn}`) viram notas numeradas na margem. Elas referenciam uma afirmação ou frase específica.
 
@@ -67,9 +91,9 @@ Em vez de puxar Jinja2 ou Mako, o gerador usa um motor de templates caseiro. Ele
 
 **Blocos**: `{{#key}}...{{/key}}` funciona tanto como condicional (renderiza a seção se `key` for verdadeiro) quanto como loop (se `key` for uma lista, renderiza o conteúdo interno uma vez por item).
 
-Essa é a API inteira. O template base tem 30 linhas de HTML. O template de post tem 19. Não tem herança, não tem filtros, não tem macros. Quando seus templates são simples assim, você não precisa de uma linguagem de templates. Você precisa de substituição de strings.{mn}O trade-off é real: não tem escape de HTML, não tem aninhamento de blocos do mesmo tipo. Ambos são aceitáveis aqui porque todo o conteúdo é controlado pelo autor e nenhum template de fato aninha blocos.{/mn}
+Essa é a API inteira. Quatro templates definem o site: `base.html` (33 linhas, a estrutura do site com header, nav e meta tags), `post.html` (19 linhas), `page.html` (15 linhas) e `index.html` (20 linhas). A renderização tem duas passagens: o template de conteúdo roda primeiro (ex: `post.html` preenche título, data e corpo), depois o resultado é envolvido pelo `base.html`.{mn}O trade-off é real: não tem escape de HTML, não tem aninhamento de blocos do mesmo tipo. Ambos são aceitáveis aqui porque todo o conteúdo é controlado pelo autor e nenhum template de fato aninha blocos.{/mn}
 
-## Bilíngue por design
+## Arquitetura bilíngue
 
 Todo conteúdo existe em inglês e português. A estrutura de arquivos espelha isso:
 
@@ -80,15 +104,13 @@ posts/pt/how-this-site-works.md
 
 O script de build encontra pares de conteúdo comparando nomes de arquivo entre os diretórios de cada idioma. Se um post existe tanto em `en/` quanto em `pt/`, o gerador adiciona um seletor de idioma (o ícone de bandeira no header) que linka diretamente para a outra versão.
 
-O `index.html` da raiz é só um redirect. Ele verifica o `localStorage` para uma escolha anterior de idioma, depois consulta `navigator.language`, e por último usa inglês como padrão. Nenhuma lógica server-side necessária.{mn}Isso significa que visitantes recorrentes vão direto para seu idioma sem um flash da versão errada. Visitantes do Brasil recebem português automaticamente na primeira visita.{/mn}
-
-Escrever nos dois idiomas dá mais trabalho, mas força clareza. Quando uma frase não traduz bem, geralmente é porque a ideia não está clara o suficiente.
+O `index.html` da raiz é um redirect. Ele verifica o `localStorage` para uma escolha anterior de idioma, depois consulta `navigator.language`, e por último usa inglês como padrão. Nenhuma lógica server-side necessária.{mn}Isso significa que visitantes recorrentes vão direto para seu idioma sem um flash da versão errada. Visitantes do Brasil recebem português automaticamente na primeira visita.{/mn}
 
 ## O frontend
 
 ### Velocidade
 
-O site carrega três arquivos CSS (Tufte base, customizações, e declarações da fonte ET Book) e três pequenos arquivos JavaScript (toggle de tema, preferência de idioma, índice de conteúdo). Sem requests externos. Sem CDN. Sem analytics. Sem web fonts carregadas do Google.{mn}A ET Book é hospedada localmente em `static/css/et-book/`. O conjunto completo da fonte tem cerca de 300KB, mas os navegadores só baixam os pesos efetivamente usados.{/mn}
+O site carrega três arquivos CSS (Tufte base, customizações, e declarações da fonte ET Book) e três pequenos arquivos JavaScript (toggle de tema, preferência de idioma, índice de conteúdo). Sem requests externos para renderização. Sem CDN. Sem analytics.{mn}A ET Book é hospedada localmente em `static/css/et-book/`. O conjunto completo da fonte tem cerca de 300KB, mas os navegadores só baixam os pesos efetivamente usados.{/mn}
 
 As páginas são HTML estático servido pelo GitHub Pages. Não tem o que ser lento.
 
@@ -102,14 +124,8 @@ Posts com três ou mais cabeçalhos ganham um índice. Em telas largas (1440px+)
 
 ### Visualizações interativas
 
-As visualizações em D3.js (como o diagrama do pipeline acima) são arquivos HTML autocontidos em `static/embeds/`. Cada um funciona tanto standalone quanto embutido via iframe. Quando carregados com `?embed` na URL, eles escondem seu próprio chrome (toggle de tema, instruções) e escutam eventos `postMessage` da página pai para sincronizar o tema de cores.
+As visualizações em D3.js (como os diagramas acima) são arquivos HTML autocontidos em `static/embeds/`. Cada um funciona tanto standalone quanto embutido via iframe. Quando carregados com `?embed` na URL, eles escondem seu próprio chrome (toggle de tema, instruções) e escutam eventos `postMessage` da página pai para sincronizar o tema de cores.
 
 ## Rascunhos
 
-Definir `draft: true` no frontmatter de um post significa que ele é gerado e fica acessível pela URL direta, mas não aparece na página inicial nem no feed Atom. Eu uso isso para posts que quero compartilhar com pessoas específicas antes de publicar amplamente. Este post, por exemplo, é um rascunho agora.
-
-## Por que customizado
-
-Eu poderia ter usado Hugo ou Jekyll. São boas ferramentas. Mas eu queria entender cada parte do sistema que publica o que eu escrevo. Quando algo quebra, eu não quero pesquisar no issue tracker de um framework. Eu quero ler 1.300 linhas de Python que eu revisei linha por linha.
-
-É um site pessoal. Deveria ser pessoal até o último detalhe.
+Definir `draft: true` no frontmatter de um post significa que ele é gerado e fica acessível pela URL direta, mas não aparece na página inicial nem no feed Atom. Útil para compartilhar posts específicos antes de publicar amplamente.

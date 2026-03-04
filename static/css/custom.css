@@ -1,8 +1,5 @@
 /* Custom extensions to Tufte CSS */
 
-/* Import Source Code Pro for monospace */
-@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600&display=swap');
-
 /* Theme toggle support - override prefers-color-scheme with data attribute.
    Both themes use neutral grays for a cohesive look. */
 :root {

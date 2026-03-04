@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitetura do Repositório — vmargato.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<script src="/static/js/theme.js"></script>
+<script>
+const isEmbed = new URLSearchParams(window.location.search).has('embed');
+if (isEmbed) {
+  document.documentElement.classList.add('embed');
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'theme-change') {
+      document.documentElement.setAttribute('data-theme', e.data.theme);
+    }
+  });
+}
+</script>
+<style>
+  :root {
+    --bg-color: #e8e8e8;
+    --text-color: #4a4a4a;
+    --text-muted: #808080;
+    --heading-color: #000000;
+    --border-color: #d0d0d0;
+    --code-bg: #dcdcdc;
+    --node-fill: #d0d0d0;
+    --node-stroke: #4a4a4a;
+    --link-color: #c0c0c0;
+    --link-hover: #4a4a4a;
+  }
+  [data-theme="dark"] {
+    --bg-color: #252525;
+    --text-color: #b0b0b0;
+    --text-muted: #808080;
+    --heading-color: #ffffff;
+    --border-color: #3a3a3a;
+    --code-bg: #303030;
+    --node-fill: #3a3a3a;
+    --node-stroke: #b0b0b0;
+    --link-color: #444444;
+    --link-hover: #b0b0b0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    transition: background 0.2s;
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+  svg { display: block; }
+  .edge {
+    stroke: var(--link-color);
+    stroke-width: 1.5px;
+    fill: none;
+    transition: stroke 0.2s, stroke-opacity 0.2s;
+  }
+  .edge.copy { stroke-dasharray: 5 3; }
+  .edge.data { stroke-dasharray: 4 3; }
+  .node rect {
+    fill: var(--node-fill);
+    stroke: var(--node-stroke);
+    stroke-width: 1.2px;
+    cursor: default;
+    transition: fill 0.2s, stroke 0.2s, opacity 0.2s;
+  }
+  .node text {
+    fill: var(--text-color);
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .node .label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .node .filepath {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10.5px;
+    font-weight: 400;
+  }
+  .col-header {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    fill: var(--text-muted);
+    text-anchor: middle;
+  }
+  .tooltip {
+    position: absolute;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 280px;
+    line-height: 1.5;
+    z-index: 30;
+  }
+  .tooltip b { color: var(--heading-color); font-weight: 600; }
+  .tooltip .desc { color: var(--text-muted); }
+  .instructions {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    z-index: 10;
+  }
+  .center-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: var(--text-muted);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    z-index: 10;
+  }
+  .center-btn:hover { border-color: var(--text-color); color: var(--text-color); }
+  .embed .theme-toggle,
+  .embed .instructions { display: none; }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="instructions" id="instructions">
+  Passe o mouse sobre qualquer n&oacute; para rastrear suas conex&otilde;es
+</div>
+
+<button class="center-btn" onclick="centerGraph()">Centralizar</button>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// --- Data ---
+const NW = 160, NH = 30, NR = 6;
+
+const nodes = [
+  // Sources
+  { id: 'posts-en',  type: 'source', label: 'posts/en/*.md',     x: 120, y: 80,
+    desc: 'Posts em ingl\u00eas. Cada um tem frontmatter YAML (title, date, excerpt) e corpo em Markdown.' },
+  { id: 'posts-pt',  type: 'source', label: 'posts/pt/*.md',     x: 120, y: 130,
+    desc: 'Posts em portugu\u00eas. Pareados com os posts em ingl\u00eas pelo slug do nome de arquivo.' },
+  { id: 'templates', type: 'source', label: 'templates/',         x: 120, y: 230,
+    desc: 'Quatro templates HTML: base.html (estrutura do site), post.html, page.html e index.html. Usados por build_post e build_index para estruturar a sa\u00edda.' },
+  { id: 'pages-en',  type: 'source', label: 'pages/en/about.md', x: 120, y: 340,
+    desc: 'P\u00e1gina sobre em ingl\u00eas. Seu conte\u00fado renderizado \u00e9 inserido na homepage pelo build_index.' },
+  { id: 'pages-pt',  type: 'source', label: 'pages/pt/about.md', x: 120, y: 390,
+    desc: 'P\u00e1gina sobre em portugu\u00eas. Inserida na homepage em portugu\u00eas.' },
+  { id: 'static',    type: 'source', label: 'static/',            x: 120, y: 490,
+    desc: 'CSS (Tufte + tema customizado), JavaScript (toggle de tema, idioma, \u00edndice), fontes ET Book e embeds interativos em D3.js.' },
+
+  // Build functions
+  { id: 'build-post',    type: 'process', label: 'build_post()',    x: 460, y: 230,
+    desc: 'Para cada post: interpreta frontmatter, converte Markdown para HTML, aplica extens\u00f5es Tufte (sidenotes, margin notes), extrai cabe\u00e7alhos para o \u00edndice, renderiza por post.html e depois base.html.' },
+  { id: 'build-index',   type: 'process', label: 'build_index()',   x: 460, y: 365,
+    desc: 'Constr\u00f3i a homepage: insere conte\u00fado da p\u00e1gina sobre, lista posts n\u00e3o-rascunho em ordem cronol\u00f3gica decrescente, renderiza por index.html e base.html.' },
+  { id: 'build-feed',    type: 'process', label: 'build_feed()',    x: 460, y: 450,
+    desc: 'Gera um feed Atom XML com os 20 posts mais recentes (excluindo rascunhos). Usado por leitores RSS.' },
+  { id: 'copy-static',   type: 'process', label: 'copy_static()',   x: 460, y: 490,
+    desc: 'Copia o diret\u00f3rio static/ inteiro para output/static/ sem nenhuma modifica\u00e7\u00e3o.' },
+  { id: 'root-redirect', type: 'process', label: 'root_redirect()', x: 460, y: 550,
+    desc: 'Gera um index.html raiz que detecta o idioma do visitante via localStorage, depois navigator.language, e redireciona para en/ ou pt/.' },
+
+  // Outputs
+  { id: 'out-posts-en',  type: 'output', label: 'en/posts/*.html', x: 800, y: 200,
+    desc: 'Posts renderizados em ingl\u00eas. Cada um com sidenotes Tufte, sidebar de \u00edndice opcional e toggle de idioma para a vers\u00e3o em portugu\u00eas.' },
+  { id: 'out-posts-pt',  type: 'output', label: 'pt/posts/*.html', x: 800, y: 260,
+    desc: 'Posts renderizados em portugu\u00eas. Mesma estrutura, com toggle de idioma para a vers\u00e3o em ingl\u00eas.' },
+  { id: 'out-index-en',  type: 'output', label: 'en/index.html',   x: 800, y: 340,
+    desc: 'Homepage em ingl\u00eas. Se\u00e7\u00e3o sobre no topo, seguida da listagem de posts do mais recente ao mais antigo.' },
+  { id: 'out-index-pt',  type: 'output', label: 'pt/index.html',   x: 800, y: 390,
+    desc: 'Homepage em portugu\u00eas. Mesmo layout com conte\u00fado traduzido.' },
+  { id: 'out-feed-en',   type: 'output', label: 'en/feed.xml',     x: 800, y: 435,
+    desc: 'Feed Atom para posts em ingl\u00eas. At\u00e9 20 entradas mais recentes.' },
+  { id: 'out-feed-pt',   type: 'output', label: 'pt/feed.xml',     x: 800, y: 465,
+    desc: 'Feed Atom para posts em portugu\u00eas.' },
+  { id: 'out-static',    type: 'output', label: 'output/static/',   x: 800, y: 490,
+    desc: 'CSS, JavaScript, fontes e embeds copiados sem altera\u00e7\u00e3o do diret\u00f3rio static/ original.' },
+  { id: 'out-root',      type: 'output', label: 'index.html',       x: 800, y: 550,
+    desc: 'P\u00e1gina de redirecionamento raiz. Detecta o idioma do navegador e envia o visitante para en/ ou pt/.' },
+];
+
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+const edges = [
+  // Posts → build_post
+  { source: 'posts-en', target: 'build-post', type: 'horizontal' },
+  { source: 'posts-pt', target: 'build-post', type: 'horizontal' },
+
+  // Templates → build functions
+  { source: 'templates', target: 'build-post',  type: 'horizontal' },
+  { source: 'templates', target: 'build-index', type: 'horizontal' },
+
+  // Pages → build_index
+  { source: 'pages-en', target: 'build-index', type: 'horizontal' },
+  { source: 'pages-pt', target: 'build-index', type: 'horizontal' },
+
+  // Static → copy
+  { source: 'static', target: 'copy-static', type: 'copy' },
+
+  // Internal data flow (post metadata feeds index and feed)
+  { source: 'build-post', target: 'build-index', type: 'data' },
+  { source: 'build-post', target: 'build-feed',  type: 'branch' },
+
+  // Function → output
+  { source: 'build-post',    target: 'out-posts-en', type: 'horizontal' },
+  { source: 'build-post',    target: 'out-posts-pt', type: 'horizontal' },
+  { source: 'build-index',   target: 'out-index-en', type: 'horizontal' },
+  { source: 'build-index',   target: 'out-index-pt', type: 'horizontal' },
+  { source: 'build-feed',    target: 'out-feed-en',  type: 'horizontal' },
+  { source: 'build-feed',    target: 'out-feed-pt',  type: 'horizontal' },
+  { source: 'copy-static',   target: 'out-static',   type: 'copy' },
+  { source: 'root-redirect', target: 'out-root',     type: 'horizontal' },
+];
+
+// Compute SVG paths for edges
+edges.forEach(e => {
+  const s = nodeMap[e.source], t = nodeMap[e.target];
+  if (e.type === 'vertical' || e.type === 'data') {
+    e.path = `M ${s.x},${s.y + NH/2} L ${t.x},${t.y - NH/2}`;
+  } else if (e.type === 'branch') {
+    const sx = s.x, sy = s.y + NH/2;
+    const tx = t.x, ty = t.y - NH/2;
+    e.path = `M ${sx},${sy} C ${sx + 70},${sy + 40} ${tx + 70},${ty - 40} ${tx},${ty}`;
+  } else {
+    const sx = s.x + NW/2, sy = s.y;
+    const tx = t.x - NW/2, ty = t.y;
+    e.path = d3.linkHorizontal()({ source: [sx, sy], target: [tx, ty] });
+  }
+});
+
+// --- SVG setup ---
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height)
+  .attr("viewBox", "0 0 960 610")
+  .attr("preserveAspectRatio", "xMidYMid meet");
+
+const g = svg.append("g");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.5, 3])
+  .on("zoom", (event) => g.attr("transform", event.transform));
+svg.call(zoom);
+
+// --- Column headers ---
+const headers = [
+  { label: 'FONTES', x: 120, y: 35 },
+  { label: 'BUILD.PY', x: 460, y: 35 },
+  { label: 'SA\u00cdDA', x: 800, y: 35 },
+];
+
+g.selectAll(".col-header")
+  .data(headers)
+  .join("text")
+  .attr("class", "col-header")
+  .attr("x", d => d.x)
+  .attr("y", d => d.y)
+  .text(d => d.label);
+
+// --- Edges ---
+const edgeGroup = g.append("g");
+
+const edgePaths = edgeGroup.selectAll("path")
+  .data(edges)
+  .join("path")
+  .attr("class", d => "edge" + (d.type === "copy" ? " copy" : "") + (d.type === "data" || d.type === "branch" ? " data" : ""))
+  .attr("d", d => d.path);
+
+// --- Nodes ---
+const nodeGroup = g.append("g");
+
+const nodeGs = nodeGroup.selectAll("g")
+  .data(nodes)
+  .join("g")
+  .attr("class", d => "node " + d.type)
+  .attr("data-id", d => d.id)
+  .attr("transform", d => `translate(${d.x - NW/2}, ${d.y - NH/2})`);
+
+nodeGs.append("rect")
+  .attr("width", NW)
+  .attr("height", NH)
+  .attr("rx", NR);
+
+nodeGs.append("text")
+  .attr("class", d => d.type === 'process' ? 'label' : 'filepath')
+  .attr("x", NW / 2)
+  .attr("y", NH / 2 + 4)
+  .attr("text-anchor", "middle")
+  .text(d => d.label);
+
+// --- Interactions ---
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function getConnected(nodeId) {
+  const connected = new Set();
+  edges.forEach(e => {
+    if (e.source === nodeId) connected.add(e.target);
+    if (e.target === nodeId) connected.add(e.source);
+  });
+  return connected;
+}
+
+const tooltip = d3.select("#tooltip");
+
+nodeGs.on("mouseover", function(event, d) {
+  const connected = getConnected(d.id);
+
+  edgePaths
+    .attr("stroke-opacity", e =>
+      (e.source === d.id || e.target === d.id) ? 1 : 0.12)
+    .attr("stroke-width", e =>
+      (e.source === d.id || e.target === d.id) ? 2.5 : 1.5)
+    .attr("stroke", e =>
+      (e.source === d.id || e.target === d.id) ? cssVar('--link-hover') : cssVar('--link-color'));
+
+  nodeGs.select("rect").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15);
+  nodeGs.selectAll("text").attr("opacity", n =>
+    n.id === d.id || connected.has(n.id) ? 1 : 0.15);
+
+  tooltip
+    .html(`<b>${d.label}</b><br><span class="desc">${d.desc}</span>`)
+    .style("opacity", 1);
+  positionTooltip(event);
+})
+.on("mousemove", positionTooltip)
+.on("mouseout", function() {
+  edgePaths
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 1.5)
+    .attr("stroke", cssVar('--link-color'));
+  nodeGs.select("rect").attr("opacity", 1);
+  nodeGs.selectAll("text").attr("opacity", 1);
+  tooltip.style("opacity", 0);
+});
+
+function positionTooltip(event) {
+  let x = event.pageX + 14;
+  let y = event.pageY - 14;
+  const tt = tooltip.node();
+  const ttW = tt.offsetWidth, ttH = tt.offsetHeight;
+  if (x + ttW > width - 8) x = event.pageX - ttW - 14;
+  if (y + ttH > height - 8) y = height - ttH - 8;
+  if (y < 8) y = 8;
+  tooltip.style("left", x + "px").style("top", y + "px");
+}
+
+// --- Center / fit ---
+function centerGraph() {
+  const pad = 40;
+  const minX = d3.min(nodes, n => n.x - NW/2) - pad;
+  const maxX = d3.max(nodes, n => n.x + NW/2) + pad;
+  const minY = d3.min(nodes, n => n.y - NH/2) - pad - 20;
+  const maxY = d3.max(nodes, n => n.y + NH/2) + pad;
+  const gw = maxX - minX, gh = maxY - minY;
+  const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
+
+  const vw = 960, vh = 610;
+  const scale = Math.min(vw / gw, vh / gh, 1.2) * 0.9;
+  const tx = vw / 2 - midX * scale;
+  const ty = vh / 2 - midY * scale;
+
+  svg.transition().duration(600).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+}
+
+centerGraph();
+</script>
+</body>
+</html>
