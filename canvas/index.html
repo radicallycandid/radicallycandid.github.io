@@ -236,6 +236,15 @@
     stroke-width: 3;
   }
 
+  /* Snap guide lines */
+  .snap-guide {
+    stroke: var(--node-selected);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
   /* Connection preview line */
   .connection-preview {
     fill: none;
@@ -497,6 +506,8 @@
   let mode = 'select'; // 'select' | 'add-node' | 'add-edge'
   let connectSource = null;
   let loadedFromHash = false;
+  let clipboard = null;
+  const SNAP_THRESHOLD = 8;
 
   // ── D3 Setup ───────────────────────────────────────────────────
   const svg = d3.select('#canvas-svg');
@@ -510,6 +521,9 @@
   const previewLine = g.append('path')
     .attr('class', 'connection-preview')
     .style('display', 'none');
+
+  // Snap guide lines
+  const snapLayer = g.append('g').attr('class', 'snap-layer');
 
   // Zoom
   const zoom = d3.zoom()
@@ -773,14 +787,41 @@
   function onNodeDrag(event, d) {
     if (mode === 'add-edge') return;
     dragMoved = true;
-    d.x = event.x;
-    d.y = event.y;
+    let x = event.x, y = event.y;
+    const guides = [];
+
+    // Snap to other nodes' centers
+    nodes.forEach(n => {
+      if (n.id === d.id) return;
+      if (Math.abs(x - n.x) < SNAP_THRESHOLD) {
+        x = n.x;
+        guides.push({ x1: n.x, y1: n.y, x2: n.x, y2: y });
+      }
+      if (Math.abs(y - n.y) < SNAP_THRESHOLD) {
+        y = n.y;
+        guides.push({ x1: n.x, y1: n.y, x2: x, y2: n.y });
+      }
+    });
+
+    d.x = x;
+    d.y = y;
+    renderSnapGuides(guides);
     render();
   }
 
   function onNodeDragEnd(event, d) {
     if (mode === 'add-edge') return;
+    snapLayer.selectAll('*').remove();
     if (dragMoved) save();
+  }
+
+  function renderSnapGuides(guides) {
+    const lines = snapLayer.selectAll('.snap-guide').data(guides);
+    lines.exit().remove();
+    lines.enter().append('line').attr('class', 'snap-guide')
+      .merge(lines)
+      .attr('x1', d => d.x1).attr('y1', d => d.y1)
+      .attr('x2', d => d.x2).attr('y2', d => d.y2);
   }
 
   function onNodeClick(event, d) {
@@ -1040,6 +1081,35 @@
   document.addEventListener('keydown', (e) => {
     // Ignore if editing text
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Copy-paste
+    if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+      if (selectedNode) {
+        clipboard = { label: selectedNode.label, colorIndex: selectedNode.colorIndex || 0 };
+        showToast('Node copied');
+      }
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+      if (clipboard) {
+        const view = d3.zoomTransform(svg.node());
+        const svgEl = document.getElementById('canvas-svg');
+        // Paste near center of current view
+        const cx = (svgEl.clientWidth / 2 - view.x) / view.k;
+        const cy = (svgEl.clientHeight / 2 - view.y) / view.k;
+        const newNode = {
+          id: nextNodeId++,
+          x: cx + (Math.random() - 0.5) * 40,
+          y: cy + (Math.random() - 0.5) * 40,
+          label: clipboard.label,
+          colorIndex: clipboard.colorIndex,
+        };
+        nodes.push(newNode);
+        selectNode(newNode);
+        showToast('Node pasted');
+      }
+      return;
+    }
 
     switch (e.key) {
       case 'n': case 'N':
