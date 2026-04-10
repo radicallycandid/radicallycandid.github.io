@@ -154,6 +154,17 @@
     font-family: 'Source Code Pro', monospace;
   }
 
+  .toolbar .button-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .toolbar .button-row button {
+    flex: 1;
+    justify-content: center;
+    padding: 8px;
+  }
+
   /* Color picker in toolbar */
   .color-picker {
     display: none;
@@ -368,6 +379,64 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+  }
+  .modal-overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--toolbar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 22px 26px 18px;
+    min-width: 320px;
+    max-width: 420px;
+    font-family: 'ET Book', Georgia, serif;
+    color: var(--text-color);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-message {
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--heading-color);
+    margin-bottom: 22px;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .modal-actions button {
+    padding: 8px 16px;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .modal-actions button:hover { background: var(--btn-hover); }
+  .modal-actions button.danger {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .modal-actions button.danger:hover {
+    background: var(--danger-hover);
+    color: #ffffff;
+  }
 </style>
 </head>
 <body>
@@ -461,7 +530,7 @@
       Distribute V
       <span class="shortcut">V</span>
     </button>
-    <button id="btn-delete" class="danger" disabled>
+    <button id="btn-delete" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <line x1="4" y1="4" x2="12" y2="12"/>
         <line x1="12" y1="4" x2="4" y2="12"/>
@@ -471,26 +540,33 @@
     </button>
   </div>
 
-  <div class="separator"></div>
-
-  <div class="toolbar-section">
-    <div class="toolbar-section-label">Share</div>
-    <button id="btn-share">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M4 8h8M8 4l4 4-4 4"/>
-      </svg>
-      Copy link
-    </button>
-  </div>
-
   <div style="flex:1"></div>
 
-  <div class="toolbar-section">
-    <button id="btn-clear" class="danger">
+  <div class="button-row">
+    <button id="btn-clear" title="Clear all">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M3 4h10M6 4V3h4v1M5 4v9h6V4"/>
       </svg>
-      Clear all
+    </button>
+    <button id="btn-undo" title="Undo (⌘Z)" disabled>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 7h7a3 3 0 0 1 0 6H6"/>
+        <path d="M5.5 4.5 3 7l2.5 2.5"/>
+      </svg>
+    </button>
+    <button id="btn-redo" title="Redo (⌘⇧Z)" disabled>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13 7H6a3 3 0 0 0 0 6h4"/>
+        <path d="M10.5 4.5 13 7l-2.5 2.5"/>
+      </svg>
+    </button>
+    <button id="btn-share" title="Copy share link">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="4" cy="8" r="2"/>
+        <circle cx="12" cy="4" r="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M5.7 7 10.3 4.7M5.7 9 10.3 11.3"/>
+      </svg>
     </button>
   </div>
 </div>
@@ -500,6 +576,16 @@
   <div class="status-bar">
     <span id="status-mode">Select</span>
     <span id="status-info"></span>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-message" id="modal-message"></div>
+    <div class="modal-actions">
+      <button id="modal-cancel">Cancel</button>
+      <button id="modal-confirm" class="danger">Clear all</button>
+    </div>
   </div>
 </div>
 
@@ -530,6 +616,10 @@
   let loadedFromHash = false;
   let clipboard = null;
   const SNAP_THRESHOLD = 8;
+  let history = [];
+  let future = [];
+  const HISTORY_LIMIT = 50;
+  let dragHistorySnapshot = null;
 
   // ── D3 Setup ───────────────────────────────────────────────────
   const svg = d3.select('#canvas-svg');
@@ -627,6 +717,91 @@
     } catch(e) { return false; }
   }
 
+  function snapshot() {
+    return {
+      nodes: nodes.map(n => ({ ...n })),
+      edges: edges.map(e => ({ ...e })),
+      nextNodeId,
+      nextEdgeId,
+    };
+  }
+
+  function restoreSnapshot(snap) {
+    nodes = snap.nodes.map(n => ({ ...n }));
+    edges = snap.edges.map(e => ({ ...e }));
+    nextNodeId = snap.nextNodeId;
+    nextEdgeId = snap.nextEdgeId;
+  }
+
+  function pushHistory() {
+    history.push(snapshot());
+    if (history.length > HISTORY_LIMIT) history.shift();
+    future = [];
+    updateHistoryButtons();
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    future.push(snapshot());
+    restoreSnapshot(history.pop());
+    selectedNodeIds.clear();
+    selectedEdge = null;
+    updateSelectionButtons();
+    updateHistoryButtons();
+    render();
+    save();
+  }
+
+  function redo() {
+    if (future.length === 0) return;
+    history.push(snapshot());
+    restoreSnapshot(future.pop());
+    selectedNodeIds.clear();
+    selectedEdge = null;
+    updateSelectionButtons();
+    updateHistoryButtons();
+    render();
+    save();
+  }
+
+  function updateHistoryButtons() {
+    document.getElementById('btn-undo').disabled = history.length === 0;
+    document.getElementById('btn-redo').disabled = future.length === 0;
+  }
+
+  function showConfirm(message, confirmLabel, onConfirm) {
+    const overlay = document.getElementById('modal-overlay');
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn = document.getElementById('modal-cancel');
+    document.getElementById('modal-message').textContent = message;
+    confirmBtn.textContent = confirmLabel;
+    overlay.classList.add('visible');
+
+    function close() {
+      overlay.classList.remove('visible');
+      confirmBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', close);
+      overlay.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey, true);
+    }
+    function onOk() { close(); onConfirm(); }
+    function onBackdrop(e) { if (e.target === overlay) close(); }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); }
+      else if (e.key === 'Enter') { e.stopPropagation(); onOk(); }
+    }
+
+    confirmBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey, true);
+    confirmBtn.focus();
+  }
+
+  function isModalOpen() {
+    return document.getElementById('modal-overlay').classList.contains('visible');
+  }
+
   function showToast(msg) {
     let toast = document.querySelector('.toast');
     if (!toast) {
@@ -645,7 +820,6 @@
     renderEdges();
     renderNodes();
     updateStatusBar();
-    save();
   }
 
   function renderNodes() {
@@ -823,6 +997,8 @@
     if (mode === 'add-edge') return;
     event.sourceEvent.stopPropagation();
 
+    dragHistorySnapshot = snapshot();
+
     // If dragging an unselected node without shift, select only it
     if (!isSelected(d) && !event.sourceEvent.shiftKey) {
       selectedNodeIds.clear();
@@ -880,7 +1056,14 @@
     if (mode === 'add-edge') return;
     snapLayer.selectAll('*').remove();
     dragStartPositions = null;
-    if (dragMoved) save();
+    if (dragMoved && dragHistorySnapshot) {
+      history.push(dragHistorySnapshot);
+      if (history.length > HISTORY_LIMIT) history.shift();
+      future = [];
+      updateHistoryButtons();
+      save();
+    }
+    dragHistorySnapshot = null;
   }
 
   function renderSnapGuides(guides) {
@@ -906,11 +1089,13 @@
           (e.source === d.id && e.target === connectSource.id)
         );
         if (!exists) {
+          pushHistory();
           edges.push({
             id: nextEdgeId++,
             source: connectSource.id,
             target: d.id,
           });
+          save();
         }
         connectSource = null;
         previewLine.style('display', 'none');
@@ -947,6 +1132,7 @@
   svg.on('click', function(event) {
     if (mode === 'add-node') {
       const [x, y] = d3.pointer(event, g.node());
+      pushHistory();
       nodes.push({
         id: nextNodeId++,
         x: x,
@@ -955,6 +1141,7 @@
         colorIndex: 0,
       });
       render();
+      save();
       setMode('select');
       return;
     }
@@ -1003,7 +1190,11 @@
 
     function finish() {
       const val = input.value.trim();
-      if (val) node.label = val;
+      if (val && val !== node.label) {
+        pushHistory();
+        node.label = val;
+        save();
+      }
       input.remove();
       render();
     }
@@ -1025,9 +1216,11 @@
       swatch.dataset.index = i;
       swatch.addEventListener('click', () => {
         if (selectedNodeIds.size > 0) {
+          pushHistory();
           getSelectedNodes().forEach(n => { n.colorIndex = i; });
           updateColorPickerSelection();
           render();
+          save();
         }
       });
       picker.appendChild(swatch);
@@ -1058,23 +1251,27 @@
   function distributeH() {
     const sel = getSelectedNodes();
     if (sel.length < 3) return;
+    pushHistory();
     sel.sort((a, b) => a.x - b.x);
     const minX = sel[0].x;
     const maxX = sel[sel.length - 1].x;
     const step = (maxX - minX) / (sel.length - 1);
     sel.forEach((n, i) => { n.x = minX + step * i; });
     render();
+    save();
   }
 
   function distributeV() {
     const sel = getSelectedNodes();
     if (sel.length < 3) return;
+    pushHistory();
     sel.sort((a, b) => a.y - b.y);
     const minY = sel[0].y;
     const maxY = sel[sel.length - 1].y;
     const step = (maxY - minY) / (sel.length - 1);
     sel.forEach((n, i) => { n.y = minY + step * i; });
     render();
+    save();
   }
 
   // ── Toolbar button handlers ────────────────────────────────────
@@ -1095,6 +1292,9 @@
   });
 
   document.getElementById('btn-zoom-reset').addEventListener('click', fitToView);
+
+  document.getElementById('btn-undo').addEventListener('click', undo);
+  document.getElementById('btn-redo').addEventListener('click', redo);
 
   document.getElementById('btn-color').addEventListener('click', () => {
     const picker = document.getElementById('color-picker');
@@ -1124,27 +1324,30 @@
 
   document.getElementById('btn-clear').addEventListener('click', () => {
     if (nodes.length === 0 && edges.length === 0) return;
-    if (!confirm('Clear all nodes and edges?')) return;
-    nodes = [];
-    edges = [];
-    nextNodeId = 1;
-    nextEdgeId = 1;
-    clearSelection();
-    render();
+    showConfirm('Clear all nodes and edges?', 'Clear all', () => {
+      pushHistory();
+      nodes = [];
+      edges = [];
+      nextNodeId = 1;
+      nextEdgeId = 1;
+      clearSelection();
+      save();
+    });
   });
 
   // ── Actions ────────────────────────────────────────────────────
   function deleteSelected() {
+    if (selectedNodeIds.size === 0 && !selectedEdge) return;
+    pushHistory();
     if (selectedNodeIds.size > 0) {
       const ids = new Set(selectedNodeIds);
       nodes = nodes.filter(n => !ids.has(n.id));
       edges = edges.filter(e => !ids.has(e.source) && !ids.has(e.target));
-      clearSelection();
     } else if (selectedEdge) {
       edges = edges.filter(e => e.id !== selectedEdge.id);
-      clearSelection();
     }
-    render();
+    clearSelection();
+    save();
   }
 
   function fitToView() {
@@ -1176,8 +1379,17 @@
 
   // ── Keyboard shortcuts ─────────────────────────────────────────
   document.addEventListener('keydown', (e) => {
-    // Ignore if editing text
+    // Ignore if editing text or modal is open
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (isModalOpen()) return;
+
+    // Undo / Redo
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+      return;
+    }
 
     // Select all
     if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
@@ -1210,6 +1422,7 @@
     // Paste
     if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
       if (clipboard && clipboard.nodes.length > 0) {
+        pushHistory();
         const view = d3.zoomTransform(svg.node());
         const svgEl = document.getElementById('canvas-svg');
         const cx = (svgEl.clientWidth / 2 - view.x) / view.k;
@@ -1251,6 +1464,7 @@
         selectedEdge = null;
         updateSelectionButtons();
         render();
+        save();
         showToast(newNodes.length === 1 ? 'Node pasted' : `${newNodes.length} nodes pasted`);
       }
       return;
@@ -1308,6 +1522,7 @@
   load();
   render();
   updateSelectionButtons();
+  updateHistoryButtons();
   if (loadedFromHash) fitToView();
 })();
 </script>
