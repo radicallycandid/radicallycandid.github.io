@@ -430,6 +430,7 @@
         <circle cx="8" cy="8" r="3" fill="currentColor" opacity="0.3"/>
       </svg>
       Color
+      <span class="shortcut">C</span>
     </button>
     <div class="color-picker" id="color-picker"></div>
     <button id="btn-distribute-h" disabled>
@@ -439,6 +440,7 @@
         <rect x="12" y="4" width="3" height="8" rx="0.5"/>
       </svg>
       Distribute H
+      <span class="shortcut">H</span>
     </button>
     <button id="btn-distribute-v" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -447,6 +449,7 @@
         <rect x="4" y="12" width="8" height="3" rx="0.5"/>
       </svg>
       Distribute V
+      <span class="shortcut">V</span>
     </button>
     <button id="btn-delete" class="danger" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -1239,6 +1242,17 @@
         break;
       case 'e': case 'E':
         setMode(mode === 'add-edge' ? 'select' : 'add-edge');
+        break;
+      case 'c': case 'C':
+        if (selectedNodeIds.size > 0) {
+          document.getElementById('btn-color').click();
+        }
+        break;
+      case 'h': case 'H':
+        distributeH();
+        break;
+      case 'v': case 'V':
+        distributeV();
         break;
       case 'Delete': case 'Backspace':
         deleteSelected();
