@@ -276,6 +276,16 @@
     pointer-events: none;
   }
 
+  /* Selection box (rubber-band) */
+  .selection-box {
+    fill: var(--node-selected);
+    fill-opacity: 0.12;
+    stroke: var(--node-selected);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+  }
+
   /* Text editing */
   .node-edit-input {
     position: absolute;
@@ -620,6 +630,9 @@
   let future = [];
   const HISTORY_LIMIT = 50;
   let dragHistorySnapshot = null;
+  let spaceDown = false;
+  let selectBox = null;
+  let suppressNextClick = false;
 
   // ── D3 Setup ───────────────────────────────────────────────────
   const svg = d3.select('#canvas-svg');
@@ -641,6 +654,13 @@
   const zoom = d3.zoom()
     .scaleExtent([0.1, 5])
     .on('zoom', (event) => g.attr('transform', event.transform));
+
+  zoom.filter((event) => {
+    // Wheel and touch events: default behavior (zoom/pinch)
+    if (event.type !== 'mousedown') return !event.ctrlKey && !event.button;
+    // Mouse drag pans only when space is held or middle-click
+    return spaceDown || event.button === 1;
+  });
 
   svg.call(zoom);
 
@@ -1128,8 +1148,85 @@
     }
   }
 
+  // ── Rubber-band selection ──────────────────────────────────────
+  document.getElementById('canvas-svg').addEventListener('mousedown', function(event) {
+    if (mode !== 'select') return;
+    if (spaceDown) return;
+    if (event.button !== 0) return;
+    if (event.target.closest('.node-group') || event.target.closest('.edge-path')) return;
+
+    const [x0, y0] = d3.pointer(event, g.node());
+    selectBox = { x0, y0, x1: x0, y1: y0, rect: null, moved: false, shiftKey: event.shiftKey };
+    const baseSelection = event.shiftKey ? new Set(selectedNodeIds) : new Set();
+
+    function onMove(e) {
+      const [x, y] = d3.pointer(e, g.node());
+      selectBox.x1 = x;
+      selectBox.y1 = y;
+      if (!selectBox.moved && (Math.abs(x - selectBox.x0) > 2 || Math.abs(y - selectBox.y0) > 2)) {
+        selectBox.moved = true;
+      }
+      if (!selectBox.moved) return;
+      const minX = Math.min(selectBox.x0, x);
+      const minY = Math.min(selectBox.y0, y);
+      const w = Math.abs(x - selectBox.x0);
+      const h = Math.abs(y - selectBox.y0);
+      if (!selectBox.rect) {
+        selectBox.rect = g.append('rect').attr('class', 'selection-box');
+      }
+      selectBox.rect
+        .attr('x', minX).attr('y', minY)
+        .attr('width', w).attr('height', h);
+
+      // Live-update selection as the box grows
+      const hits = nodes.filter(n =>
+        n.x + NODE_W / 2 >= minX && n.x - NODE_W / 2 <= minX + w &&
+        n.y + NODE_H / 2 >= minY && n.y - NODE_H / 2 <= minY + h
+      );
+      selectedNodeIds = new Set(baseSelection);
+      hits.forEach(n => selectedNodeIds.add(n.id));
+      selectedEdge = null;
+      updateSelectionButtons();
+      render();
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (selectBox && selectBox.rect) {
+        selectBox.rect.remove();
+        suppressNextClick = true;
+      }
+      selectBox = null;
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // ── Space to pan ───────────────────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if (e.code !== 'Space') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (isModalOpen()) return;
+    if (!spaceDown) {
+      spaceDown = true;
+      svg.style('cursor', 'grab');
+    }
+    e.preventDefault();
+  });
+  document.addEventListener('keyup', function(e) {
+    if (e.code !== 'Space') return;
+    spaceDown = false;
+    svg.style('cursor',
+      mode === 'add-node' ? 'crosshair' :
+      mode === 'add-edge' ? 'crosshair' : 'default'
+    );
+  });
+
   // ── Canvas click (add node) ────────────────────────────────────
   svg.on('click', function(event) {
+    if (suppressNextClick) { suppressNextClick = false; return; }
     if (mode === 'add-node') {
       const [x, y] = d3.pointer(event, g.node());
       pushHistory();
@@ -1388,6 +1485,22 @@
       e.preventDefault();
       if (e.shiftKey) redo();
       else undo();
+      return;
+    }
+
+    // Arrow-key nudge for selected nodes
+    if (selectedNodeIds.size > 0 && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const step = e.shiftKey ? 10 : 1;
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowLeft') dx = -step;
+      else if (e.key === 'ArrowRight') dx = step;
+      else if (e.key === 'ArrowUp') dy = -step;
+      else if (e.key === 'ArrowDown') dy = step;
+      if (!e.repeat) pushHistory();
+      getSelectedNodes().forEach(n => { n.x += dx; n.y += dy; });
+      render();
+      save();
       return;
     }
 
