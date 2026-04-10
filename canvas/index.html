@@ -211,12 +211,22 @@
   }
 
   .node-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'ET Book', Georgia, serif;
     font-size: 14px;
-    text-anchor: middle;
-    dominant-baseline: central;
+    line-height: 1.2;
+    text-align: center;
+    padding: 4px 8px;
+    color: var(--heading-color);
     pointer-events: none;
     user-select: none;
+    overflow: hidden;
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   /* Edge styles */
@@ -656,7 +666,13 @@
       .attr('width', NODE_W)
       .attr('height', NODE_H);
 
-    enter.append('text')
+    enter.append('foreignObject')
+      .attr('class', 'node-fo')
+      .attr('x', -NODE_W / 2)
+      .attr('y', -NODE_H / 2)
+      .attr('width', NODE_W)
+      .attr('height', NODE_H)
+      .append('xhtml:div')
       .attr('class', 'node-text');
 
     // Drag
@@ -685,8 +701,7 @@
       .classed('selected', d => isSelected(d));
 
     all.select('.node-text')
-      .text(d => d.label)
-      .attr('fill', () => cssVar('--heading-color'));
+      .text(d => d.label);
   }
 
   function renderEdges() {
