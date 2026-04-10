@@ -424,24 +424,6 @@
 
   <div class="toolbar-section">
     <div class="toolbar-section-label">Selection</div>
-    <button id="btn-select-all">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="1" y="1" width="6" height="6" rx="1"/>
-        <rect x="9" y="1" width="6" height="6" rx="1"/>
-        <rect x="1" y="9" width="6" height="6" rx="1"/>
-        <rect x="9" y="9" width="6" height="6" rx="1"/>
-      </svg>
-      Select all
-      <span class="shortcut">&#8984;A</span>
-    </button>
-    <button id="btn-edit-label" disabled>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M11.5 1.5l3 3-9 9H2.5v-3z"/>
-        <line x1="9.5" y1="3.5" x2="12.5" y2="6.5"/>
-      </svg>
-      Edit label
-      <span class="shortcut">F2</span>
-    </button>
     <button id="btn-color" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="8" cy="8" r="6"/>
@@ -787,7 +769,6 @@
   function updateSelectionButtons() {
     const selCount = selectedNodeIds.size;
     const hasAnySel = selCount > 0 || !!selectedEdge;
-    document.getElementById('btn-edit-label').disabled = selCount !== 1;
     document.getElementById('btn-color').disabled = selCount === 0;
     document.getElementById('btn-delete').disabled = !hasAnySel;
     document.getElementById('btn-distribute-h').disabled = selCount < 3;
@@ -815,9 +796,11 @@
   // ── Node interaction ───────────────────────────────────────────
   let dragMoved = false;
   let dragStartPositions = null;
+  let selectionChangedInDragStart = false;
 
   function onNodeDragStart(event, d) {
     dragMoved = false;
+    selectionChangedInDragStart = false;
     if (mode === 'add-edge') return;
     event.sourceEvent.stopPropagation();
 
@@ -826,6 +809,7 @@
       selectedNodeIds.clear();
       selectedNodeIds.add(d.id);
       selectedEdge = null;
+      selectionChangedInDragStart = true;
       updateSelectionButtons();
       render();
     }
@@ -917,7 +901,7 @@
       return;
     }
 
-    if (dragMoved) return;
+    if (dragMoved || selectionChangedInDragStart) return;
 
     if (event.shiftKey || event.metaKey) {
       toggleSelect(d);
@@ -1093,15 +1077,6 @@
 
   document.getElementById('btn-zoom-reset').addEventListener('click', fitToView);
 
-  document.getElementById('btn-select-all').addEventListener('click', selectAllNodes);
-
-  document.getElementById('btn-edit-label').addEventListener('click', () => {
-    if (selectedNodeIds.size === 1) {
-      const node = nodes.find(n => selectedNodeIds.has(n.id));
-      if (node) startEditLabel(node);
-    }
-  });
-
   document.getElementById('btn-color').addEventListener('click', () => {
     const picker = document.getElementById('color-picker');
     picker.classList.toggle('visible');
@@ -1267,13 +1242,6 @@
         break;
       case 'Delete': case 'Backspace':
         deleteSelected();
-        break;
-      case 'F2':
-        if (selectedNodeIds.size === 1) {
-          const node = nodes.find(n => selectedNodeIds.has(n.id));
-          if (node) startEditLabel(node);
-        }
-        e.preventDefault();
         break;
       case 'Escape':
         clearSelection();
