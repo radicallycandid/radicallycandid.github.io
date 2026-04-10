@@ -77,7 +77,7 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--heading-color);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     letter-spacing: 0.02em;
   }
 
@@ -1199,6 +1199,10 @@
         const cx = (svgEl.clientWidth / 2 - view.x) / view.k;
         const cy = (svgEl.clientHeight / 2 - view.y) / view.k;
 
+        // Single jitter for the whole group, so relative positions are preserved
+        const jitterX = (Math.random() - 0.5) * 20;
+        const jitterY = (Math.random() - 0.5) * 20;
+
         // Map old IDs to new IDs
         const idMap = new Map();
         const newNodes = [];
@@ -1207,8 +1211,8 @@
           idMap.set(cn.origId, newId);
           const nn = {
             id: newId,
-            x: cx + cn.dx + (Math.random() - 0.5) * 20,
-            y: cy + cn.dy + (Math.random() - 0.5) * 20,
+            x: cx + cn.dx + jitterX,
+            y: cy + cn.dy + jitterY,
             label: cn.label,
             colorIndex: cn.colorIndex,
           };
