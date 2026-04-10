@@ -70,6 +70,7 @@
     z-index: 10;
     transition: background 0.2s, border-color 0.2s;
     user-select: none;
+    overflow-y: auto;
   }
 
   .toolbar h2 {
@@ -423,6 +424,16 @@
 
   <div class="toolbar-section">
     <div class="toolbar-section-label">Selection</div>
+    <button id="btn-select-all">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="1" width="6" height="6" rx="1"/>
+        <rect x="9" y="1" width="6" height="6" rx="1"/>
+        <rect x="1" y="9" width="6" height="6" rx="1"/>
+        <rect x="9" y="9" width="6" height="6" rx="1"/>
+      </svg>
+      Select all
+      <span class="shortcut">&#8984;A</span>
+    </button>
     <button id="btn-edit-label" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M11.5 1.5l3 3-9 9H2.5v-3z"/>
@@ -439,6 +450,22 @@
       Color
     </button>
     <div class="color-picker" id="color-picker"></div>
+    <button id="btn-distribute-h" disabled>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="4" width="3" height="8" rx="0.5"/>
+        <rect x="6.5" y="4" width="3" height="8" rx="0.5"/>
+        <rect x="12" y="4" width="3" height="8" rx="0.5"/>
+      </svg>
+      Distribute H
+    </button>
+    <button id="btn-distribute-v" disabled>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="4" y="1" width="8" height="3" rx="0.5"/>
+        <rect x="4" y="6.5" width="8" height="3" rx="0.5"/>
+        <rect x="4" y="12" width="8" height="3" rx="0.5"/>
+      </svg>
+      Distribute V
+    </button>
     <button id="btn-delete" class="danger" disabled>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
         <line x1="4" y1="4" x2="12" y2="12"/>
@@ -501,7 +528,7 @@
   let edges = [];
   let nextNodeId = 1;
   let nextEdgeId = 1;
-  let selectedNode = null;
+  let selectedNodeIds = new Set();
   let selectedEdge = null;
   let mode = 'select'; // 'select' | 'add-node' | 'add-edge'
   let connectSource = null;
@@ -546,8 +573,12 @@
     return isDark() ? c.dark : c.light;
   }
 
-  function nodeStroke(node) {
-    return cssVar('--node-stroke');
+  function isSelected(node) {
+    return selectedNodeIds.has(node.id);
+  }
+
+  function getSelectedNodes() {
+    return nodes.filter(n => selectedNodeIds.has(n.id));
   }
 
   function save() {
@@ -596,7 +627,6 @@
       }));
       nextNodeId = Math.max(0, ...nodes.map(n => n.id)) + 1;
       nextEdgeId = edges.length + 1;
-      // Clear hash so edits don't stay on a stale shared URL
       history.replaceState(null, '', window.location.pathname);
       return true;
     } catch(e) { return false; }
@@ -666,8 +696,8 @@
 
     all.select('.node-rect')
       .attr('fill', d => nodeColor(d))
-      .attr('stroke', d => d === selectedNode ? cssVar('--node-selected') : nodeStroke(d))
-      .classed('selected', d => d === selectedNode);
+      .attr('stroke', d => isSelected(d) ? cssVar('--node-selected') : cssVar('--node-stroke'))
+      .classed('selected', d => isSelected(d));
 
     all.select('.node-text')
       .text(d => d.label)
@@ -698,24 +728,6 @@
       .classed('selected', d => d === selectedEdge);
   }
 
-  function smoothEdge(x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    // Cubic bezier with control points offset perpendicular to the line
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const curvature = Math.min(dist * 0.2, 60);
-    // Midpoint
-    const mx = (x1 + x2) / 2;
-    const my = (y1 + y2) / 2;
-    // Normal direction
-    const nx = -dy / (dist || 1);
-    const ny = dx / (dist || 1);
-    // Control point offset from midpoint
-    const cx = mx + nx * curvature;
-    const cy = my + ny * curvature;
-    return `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
-  }
-
   // ── Interaction ────────────────────────────────────────────────
   function setMode(newMode) {
     mode = newMode;
@@ -733,14 +745,33 @@
   }
 
   function clearSelection() {
-    selectedNode = null;
+    selectedNodeIds.clear();
     selectedEdge = null;
     updateSelectionButtons();
     render();
   }
 
-  function selectNode(node) {
-    selectedNode = node;
+  function selectOnly(node) {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    selectedEdge = null;
+    updateSelectionButtons();
+    render();
+  }
+
+  function toggleSelect(node) {
+    if (selectedNodeIds.has(node.id)) {
+      selectedNodeIds.delete(node.id);
+    } else {
+      selectedNodeIds.add(node.id);
+    }
+    selectedEdge = null;
+    updateSelectionButtons();
+    render();
+  }
+
+  function selectAllNodes() {
+    nodes.forEach(n => selectedNodeIds.add(n.id));
     selectedEdge = null;
     updateSelectionButtons();
     render();
@@ -748,18 +779,20 @@
 
   function selectEdge(edge) {
     selectedEdge = edge;
-    selectedNode = null;
+    selectedNodeIds.clear();
     updateSelectionButtons();
     render();
   }
 
   function updateSelectionButtons() {
-    const hasNodeSel = !!selectedNode;
-    const hasAnySel = hasNodeSel || !!selectedEdge;
-    document.getElementById('btn-edit-label').disabled = !hasNodeSel;
-    document.getElementById('btn-color').disabled = !hasNodeSel;
+    const selCount = selectedNodeIds.size;
+    const hasAnySel = selCount > 0 || !!selectedEdge;
+    document.getElementById('btn-edit-label').disabled = selCount !== 1;
+    document.getElementById('btn-color').disabled = selCount === 0;
     document.getElementById('btn-delete').disabled = !hasAnySel;
-    if (!hasNodeSel) {
+    document.getElementById('btn-distribute-h').disabled = selCount < 3;
+    document.getElementById('btn-distribute-v').disabled = selCount < 3;
+    if (selCount === 0) {
       document.getElementById('color-picker').classList.remove('visible');
     }
   }
@@ -770,29 +803,50 @@
       'add-node': 'Add node (click canvas)',
       'add-edge': connectSource ? 'Click target node' : 'Click source node',
     };
-    document.getElementById('status-mode').textContent = modeLabel[mode] || 'Select';
+    let statusMode = modeLabel[mode] || 'Select';
+    if (selectedNodeIds.size > 1) {
+      statusMode += ` (${selectedNodeIds.size} selected)`;
+    }
+    document.getElementById('status-mode').textContent = statusMode;
     document.getElementById('status-info').textContent =
       `${nodes.length} node${nodes.length !== 1 ? 's' : ''}, ${edges.length} edge${edges.length !== 1 ? 's' : ''}`;
   }
 
   // ── Node interaction ───────────────────────────────────────────
   let dragMoved = false;
+  let dragStartPositions = null;
 
   function onNodeDragStart(event, d) {
     dragMoved = false;
-    if (mode === 'add-edge') return; // Don't drag in edge mode
+    if (mode === 'add-edge') return;
     event.sourceEvent.stopPropagation();
+
+    // If dragging an unselected node without shift, select only it
+    if (!isSelected(d) && !event.sourceEvent.shiftKey) {
+      selectedNodeIds.clear();
+      selectedNodeIds.add(d.id);
+      selectedEdge = null;
+      updateSelectionButtons();
+      render();
+    }
+
+    // Store start positions of all selected nodes for group drag
+    dragStartPositions = new Map();
+    getSelectedNodes().forEach(n => {
+      dragStartPositions.set(n.id, { x: n.x, y: n.y });
+    });
   }
 
   function onNodeDrag(event, d) {
     if (mode === 'add-edge') return;
     dragMoved = true;
+
     let x = event.x, y = event.y;
     const guides = [];
 
-    // Snap to other nodes' centers
+    // Snap the dragged node to non-selected nodes
     nodes.forEach(n => {
-      if (n.id === d.id) return;
+      if (selectedNodeIds.has(n.id)) return;
       if (Math.abs(x - n.x) < SNAP_THRESHOLD) {
         x = n.x;
         guides.push({ x1: n.x, y1: n.y, x2: n.x, y2: y });
@@ -803,8 +857,18 @@
       }
     });
 
-    d.x = x;
-    d.y = y;
+    // Calculate delta from this node's start position
+    const start = dragStartPositions.get(d.id);
+    const dx = x - start.x;
+    const dy = y - start.y;
+
+    // Move all selected nodes by the same delta
+    getSelectedNodes().forEach(n => {
+      const s = dragStartPositions.get(n.id);
+      n.x = s.x + dx;
+      n.y = s.y + dy;
+    });
+
     renderSnapGuides(guides);
     render();
   }
@@ -812,6 +876,7 @@
   function onNodeDragEnd(event, d) {
     if (mode === 'add-edge') return;
     snapLayer.selectAll('*').remove();
+    dragStartPositions = null;
     if (dragMoved) save();
   }
 
@@ -830,10 +895,9 @@
     if (mode === 'add-edge') {
       if (!connectSource) {
         connectSource = d;
-        selectNode(d);
+        selectOnly(d);
         updateStatusBar();
       } else if (connectSource.id !== d.id) {
-        // Check if edge already exists
         const exists = edges.some(e =>
           (e.source === connectSource.id && e.target === d.id) ||
           (e.source === d.id && e.target === connectSource.id)
@@ -854,10 +918,15 @@
     }
 
     if (dragMoved) return;
-    if (selectedNode === d) {
-      clearSelection();
+
+    if (event.shiftKey || event.metaKey) {
+      toggleSelect(d);
     } else {
-      selectNode(d);
+      if (isSelected(d) && selectedNodeIds.size === 1) {
+        clearSelection();
+      } else {
+        selectOnly(d);
+      }
     }
   }
 
@@ -911,7 +980,7 @@
   // ── Label editing ──────────────────────────────────────────────
   function startEditLabel(node) {
     if (!node) return;
-    selectNode(node);
+    selectOnly(node);
 
     const svgRect = document.querySelector('#canvas-svg').getBoundingClientRect();
     const transform = d3.zoomTransform(svg.node());
@@ -952,8 +1021,8 @@
       swatch.title = c.label;
       swatch.dataset.index = i;
       swatch.addEventListener('click', () => {
-        if (selectedNode) {
-          selectedNode.colorIndex = i;
+        if (selectedNodeIds.size > 0) {
+          getSelectedNodes().forEach(n => { n.colorIndex = i; });
           updateColorPickerSelection();
           render();
         }
@@ -972,11 +1041,37 @@
   }
 
   function updateColorPickerSelection() {
+    const sel = getSelectedNodes();
     document.querySelectorAll('.color-swatch').forEach(s => {
+      const idx = parseInt(s.dataset.index);
+      // Highlight if all selected nodes share this color
       s.classList.toggle('selected',
-        selectedNode && parseInt(s.dataset.index) === (selectedNode.colorIndex || 0)
+        sel.length > 0 && sel.every(n => (n.colorIndex || 0) === idx)
       );
     });
+  }
+
+  // ── Distribute ─────────────────────────────────────────────────
+  function distributeH() {
+    const sel = getSelectedNodes();
+    if (sel.length < 3) return;
+    sel.sort((a, b) => a.x - b.x);
+    const minX = sel[0].x;
+    const maxX = sel[sel.length - 1].x;
+    const step = (maxX - minX) / (sel.length - 1);
+    sel.forEach((n, i) => { n.x = minX + step * i; });
+    render();
+  }
+
+  function distributeV() {
+    const sel = getSelectedNodes();
+    if (sel.length < 3) return;
+    sel.sort((a, b) => a.y - b.y);
+    const minY = sel[0].y;
+    const maxY = sel[sel.length - 1].y;
+    const step = (maxY - minY) / (sel.length - 1);
+    sel.forEach((n, i) => { n.y = minY + step * i; });
+    render();
   }
 
   // ── Toolbar button handlers ────────────────────────────────────
@@ -998,8 +1093,13 @@
 
   document.getElementById('btn-zoom-reset').addEventListener('click', fitToView);
 
+  document.getElementById('btn-select-all').addEventListener('click', selectAllNodes);
+
   document.getElementById('btn-edit-label').addEventListener('click', () => {
-    if (selectedNode) startEditLabel(selectedNode);
+    if (selectedNodeIds.size === 1) {
+      const node = nodes.find(n => selectedNodeIds.has(n.id));
+      if (node) startEditLabel(node);
+    }
   });
 
   document.getElementById('btn-color').addEventListener('click', () => {
@@ -1009,6 +1109,9 @@
       updateColorPickerSelection();
     }
   });
+
+  document.getElementById('btn-distribute-h').addEventListener('click', distributeH);
+  document.getElementById('btn-distribute-v').addEventListener('click', distributeV);
 
   document.getElementById('btn-delete').addEventListener('click', deleteSelected);
 
@@ -1038,10 +1141,10 @@
 
   // ── Actions ────────────────────────────────────────────────────
   function deleteSelected() {
-    if (selectedNode) {
-      const id = selectedNode.id;
-      nodes = nodes.filter(n => n.id !== id);
-      edges = edges.filter(e => e.source !== id && e.target !== id);
+    if (selectedNodeIds.size > 0) {
+      const ids = new Set(selectedNodeIds);
+      nodes = nodes.filter(n => !ids.has(n.id));
+      edges = edges.filter(e => !ids.has(e.source) && !ids.has(e.target));
       clearSelection();
     } else if (selectedEdge) {
       edges = edges.filter(e => e.id !== selectedEdge.id);
@@ -1082,31 +1185,75 @@
     // Ignore if editing text
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-    // Copy-paste
+    // Select all
+    if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+      e.preventDefault();
+      selectAllNodes();
+      return;
+    }
+
+    // Copy
     if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-      if (selectedNode) {
-        clipboard = { label: selectedNode.label, colorIndex: selectedNode.colorIndex || 0 };
-        showToast('Node copied');
+      if (selectedNodeIds.size > 0) {
+        const sel = getSelectedNodes();
+        const selIds = new Set(sel.map(n => n.id));
+        clipboard = {
+          nodes: sel.map(n => ({
+            label: n.label,
+            colorIndex: n.colorIndex || 0,
+            dx: n.x - sel[0].x,
+            dy: n.y - sel[0].y,
+            origId: n.id,
+          })),
+          edges: edges.filter(e => selIds.has(e.source) && selIds.has(e.target))
+            .map(e => ({ source: e.source, target: e.target })),
+        };
+        showToast(sel.length === 1 ? 'Node copied' : `${sel.length} nodes copied`);
       }
       return;
     }
+
+    // Paste
     if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-      if (clipboard) {
+      if (clipboard && clipboard.nodes.length > 0) {
         const view = d3.zoomTransform(svg.node());
         const svgEl = document.getElementById('canvas-svg');
-        // Paste near center of current view
         const cx = (svgEl.clientWidth / 2 - view.x) / view.k;
         const cy = (svgEl.clientHeight / 2 - view.y) / view.k;
-        const newNode = {
-          id: nextNodeId++,
-          x: cx + (Math.random() - 0.5) * 40,
-          y: cy + (Math.random() - 0.5) * 40,
-          label: clipboard.label,
-          colorIndex: clipboard.colorIndex,
-        };
-        nodes.push(newNode);
-        selectNode(newNode);
-        showToast('Node pasted');
+
+        // Map old IDs to new IDs
+        const idMap = new Map();
+        const newNodes = [];
+        clipboard.nodes.forEach(cn => {
+          const newId = nextNodeId++;
+          idMap.set(cn.origId, newId);
+          const nn = {
+            id: newId,
+            x: cx + cn.dx + (Math.random() - 0.5) * 20,
+            y: cy + cn.dy + (Math.random() - 0.5) * 20,
+            label: cn.label,
+            colorIndex: cn.colorIndex,
+          };
+          nodes.push(nn);
+          newNodes.push(nn);
+        });
+
+        // Recreate edges between pasted nodes
+        clipboard.edges.forEach(ce => {
+          const newSource = idMap.get(ce.source);
+          const newTarget = idMap.get(ce.target);
+          if (newSource && newTarget) {
+            edges.push({ id: nextEdgeId++, source: newSource, target: newTarget });
+          }
+        });
+
+        // Select pasted nodes
+        selectedNodeIds.clear();
+        newNodes.forEach(n => selectedNodeIds.add(n.id));
+        selectedEdge = null;
+        updateSelectionButtons();
+        render();
+        showToast(newNodes.length === 1 ? 'Node pasted' : `${newNodes.length} nodes pasted`);
       }
       return;
     }
@@ -1122,7 +1269,10 @@
         deleteSelected();
         break;
       case 'F2':
-        if (selectedNode) startEditLabel(selectedNode);
+        if (selectedNodeIds.size === 1) {
+          const node = nodes.find(n => selectedNodeIds.has(n.id));
+          if (node) startEditLabel(node);
+        }
         e.preventDefault();
         break;
       case 'Escape':
