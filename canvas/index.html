@@ -1529,6 +1529,7 @@
           nodes: sel.map(n => ({
             label: n.label,
             colorIndex: n.colorIndex || 0,
+            ghost: !!n.ghost,
             dx: n.x - sel[0].x,
             dy: n.y - sel[0].y,
             origId: n.id,
@@ -1566,6 +1567,7 @@
             y: cy + cn.dy + jitterY,
             label: cn.label,
             colorIndex: cn.colorIndex,
+            ghost: cn.ghost,
           };
           nodes.push(nn);
           newNodes.push(nn);
