@@ -897,11 +897,15 @@
 
     all.select('.node-rect')
       .attr('fill', d => nodeColor(d))
-      .attr('stroke', d => isSelected(d) ? cssVar('--node-selected') : cssVar('--node-stroke'))
+      .attr('stroke', d => {
+        if (d.ghost && !isSelected(d)) return 'transparent';
+        return isSelected(d) ? cssVar('--node-selected') : cssVar('--node-stroke');
+      })
       .classed('selected', d => isSelected(d));
 
     all.select('.node-text')
-      .text(d => d.label);
+      .text(d => d.label)
+      .style('font-size', d => d.ghost ? '18px' : '14px');
   }
 
   function renderEdges() {
