@@ -633,6 +633,7 @@
   let spaceDown = false;
   let selectBox = null;
   let suppressNextClick = false;
+  let cPressTimes = [];
 
   // ── D3 Setup ───────────────────────────────────────────────────
   const svg = d3.select('#canvas-svg');
@@ -674,6 +675,7 @@
   }
 
   function nodeColor(node) {
+    if (node.ghost) return 'transparent';
     const c = COLORS[node.colorIndex || 0];
     return isDark() ? c.dark : c.light;
   }
@@ -709,7 +711,8 @@
     const state = { n: [], e: [] };
     nodes.forEach(nd => {
       const entry = [nd.id, Math.round(nd.x), Math.round(nd.y), nd.label];
-      if (nd.colorIndex) entry.push(nd.colorIndex);
+      if (nd.colorIndex || nd.ghost) entry.push(nd.colorIndex || 0);
+      if (nd.ghost) entry.push(1);
       state.n.push(entry);
     });
     edges.forEach(ed => {
@@ -725,7 +728,9 @@
       const state = JSON.parse(decodeURIComponent(atob(hash)));
       if (!state.n) return false;
       nodes = state.n.map(a => ({
-        id: a[0], x: a[1], y: a[2], label: a[3], colorIndex: a[4] || 0
+        id: a[0], x: a[1], y: a[2], label: a[3],
+        colorIndex: a[4] || 0,
+        ghost: !!a[5],
       }));
       edges = (state.e || []).map((a, i) => ({
         id: i + 1, source: a[0], target: a[1]
@@ -1592,7 +1597,21 @@
         break;
       case 'c': case 'C':
         if (selectedNodeIds.size > 0) {
-          document.getElementById('btn-color').click();
+          const now = Date.now();
+          cPressTimes = cPressTimes.filter(t => now - t < 700);
+          cPressTimes.push(now);
+          if (cPressTimes.length >= 3) {
+            cPressTimes = [];
+            pushHistory();
+            const sel = getSelectedNodes();
+            const allGhost = sel.every(n => n.ghost);
+            sel.forEach(n => { n.ghost = !allGhost; });
+            document.getElementById('color-picker').classList.remove('visible');
+            render();
+            save();
+          } else {
+            document.getElementById('btn-color').click();
+          }
         }
         break;
       case 'h': case 'H':
