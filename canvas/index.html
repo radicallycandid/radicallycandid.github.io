@@ -633,7 +633,6 @@
   let spaceDown = false;
   let selectBox = null;
   let suppressNextClick = false;
-  let cPressTimes = [];
 
   // ── D3 Setup ───────────────────────────────────────────────────
   const svg = d3.select('#canvas-svg');
@@ -675,7 +674,6 @@
   }
 
   function nodeColor(node) {
-    if (node.ghost) return 'transparent';
     const c = COLORS[node.colorIndex || 0];
     return isDark() ? c.dark : c.light;
   }
@@ -711,8 +709,7 @@
     const state = { n: [], e: [] };
     nodes.forEach(nd => {
       const entry = [nd.id, Math.round(nd.x), Math.round(nd.y), nd.label];
-      if (nd.colorIndex || nd.ghost) entry.push(nd.colorIndex || 0);
-      if (nd.ghost) entry.push(1);
+      if (nd.colorIndex) entry.push(nd.colorIndex);
       state.n.push(entry);
     });
     edges.forEach(ed => {
@@ -728,9 +725,7 @@
       const state = JSON.parse(decodeURIComponent(atob(hash)));
       if (!state.n) return false;
       nodes = state.n.map(a => ({
-        id: a[0], x: a[1], y: a[2], label: a[3],
-        colorIndex: a[4] || 0,
-        ghost: !!a[5],
+        id: a[0], x: a[1], y: a[2], label: a[3], colorIndex: a[4] || 0
       }));
       edges = (state.e || []).map((a, i) => ({
         id: i + 1, source: a[0], target: a[1]
@@ -897,15 +892,11 @@
 
     all.select('.node-rect')
       .attr('fill', d => nodeColor(d))
-      .attr('stroke', d => {
-        if (d.ghost && !isSelected(d)) return 'transparent';
-        return isSelected(d) ? cssVar('--node-selected') : cssVar('--node-stroke');
-      })
+      .attr('stroke', d => isSelected(d) ? cssVar('--node-selected') : cssVar('--node-stroke'))
       .classed('selected', d => isSelected(d));
 
     all.select('.node-text')
-      .text(d => d.label)
-      .style('font-size', d => d.ghost ? '20px' : '14px');
+      .text(d => d.label);
   }
 
   function renderEdges() {
@@ -1529,7 +1520,6 @@
           nodes: sel.map(n => ({
             label: n.label,
             colorIndex: n.colorIndex || 0,
-            ghost: !!n.ghost,
             dx: n.x - sel[0].x,
             dy: n.y - sel[0].y,
             origId: n.id,
@@ -1567,7 +1557,6 @@
             y: cy + cn.dy + jitterY,
             label: cn.label,
             colorIndex: cn.colorIndex,
-            ghost: cn.ghost,
           };
           nodes.push(nn);
           newNodes.push(nn);
@@ -1603,21 +1592,7 @@
         break;
       case 'c': case 'C':
         if (selectedNodeIds.size > 0) {
-          const now = Date.now();
-          cPressTimes = cPressTimes.filter(t => now - t < 700);
-          cPressTimes.push(now);
-          if (cPressTimes.length >= 3) {
-            cPressTimes = [];
-            pushHistory();
-            const sel = getSelectedNodes();
-            const allGhost = sel.every(n => n.ghost);
-            sel.forEach(n => { n.ghost = !allGhost; });
-            document.getElementById('color-picker').classList.remove('visible');
-            render();
-            save();
-          } else {
-            document.getElementById('btn-color').click();
-          }
+          document.getElementById('btn-color').click();
         }
         break;
       case 'h': case 'H':
