@@ -732,7 +732,7 @@
       }));
       nextNodeId = Math.max(0, ...nodes.map(n => n.id)) + 1;
       nextEdgeId = edges.length + 1;
-      history.replaceState(null, '', window.location.pathname);
+      window.history.replaceState(null, '', window.location.pathname);
       return true;
     } catch(e) { return false; }
   }
