@@ -623,6 +623,7 @@
   let selectedEdge = null;
   let mode = 'select'; // 'select' | 'add-node' | 'add-edge'
   let connectSource = null;
+  let connectSourceSide = null;
   let loadedFromHash = false;
   let clipboard = null;
   const SNAP_THRESHOLD = 8;
@@ -713,7 +714,9 @@
       state.n.push(entry);
     });
     edges.forEach(ed => {
-      state.e.push([ed.source, ed.target]);
+      const entry = [ed.source, ed.target];
+      if (ed.sourceSide || ed.targetSide) entry.push(ed.sourceSide || '', ed.targetSide || '');
+      state.e.push(entry);
     });
     return btoa(encodeURIComponent(JSON.stringify(state)));
   }
@@ -728,7 +731,8 @@
         id: a[0], x: a[1], y: a[2], label: a[3], colorIndex: a[4] || 0
       }));
       edges = (state.e || []).map((a, i) => ({
-        id: i + 1, source: a[0], target: a[1]
+        id: i + 1, source: a[0], target: a[1],
+        sourceSide: a[2] || null, targetSide: a[3] || null,
       }));
       nextNodeId = Math.max(0, ...nodes.map(n => n.id)) + 1;
       nextEdgeId = edges.length + 1;
@@ -899,17 +903,27 @@
       .text(d => d.label);
   }
 
-  function getAnchor(node, otherX, otherY) {
-    const dx = otherX - node.x;
-    const dy = otherY - node.y;
-    if (Math.abs(dx) * NODE_H > Math.abs(dy) * NODE_W) {
-      // Horizontal dominant
-      if (dx > 0) return { x: node.x + NODE_W / 2, y: node.y, side: 'right' };
-      return { x: node.x - NODE_W / 2, y: node.y, side: 'left' };
+  function closestSide(node, px, py) {
+    const dists = {
+      right:  Math.abs(px - (node.x + NODE_W / 2)),
+      left:   Math.abs(px - (node.x - NODE_W / 2)),
+      bottom: Math.abs(py - (node.y + NODE_H / 2)),
+      top:    Math.abs(py - (node.y - NODE_H / 2)),
+    };
+    let best = 'right', min = Infinity;
+    for (const [side, d] of Object.entries(dists)) {
+      if (d < min) { min = d; best = side; }
     }
-    // Vertical dominant
-    if (dy > 0) return { x: node.x, y: node.y + NODE_H / 2, side: 'bottom' };
-    return { x: node.x, y: node.y - NODE_H / 2, side: 'top' };
+    return best;
+  }
+
+  function anchorPoint(node, side) {
+    switch (side) {
+      case 'right':  return { x: node.x + NODE_W / 2, y: node.y };
+      case 'left':   return { x: node.x - NODE_W / 2, y: node.y };
+      case 'bottom': return { x: node.x, y: node.y + NODE_H / 2 };
+      case 'top':    return { x: node.x, y: node.y - NODE_H / 2 };
+    }
   }
 
   function controlOffset(side, dist) {
@@ -947,9 +961,11 @@
         const s = nodes.find(n => n.id === d.source);
         const t = nodes.find(n => n.id === d.target);
         if (!s || !t) return '';
-        const a1 = getAnchor(s, t.x, t.y);
-        const a2 = getAnchor(t, s.x, s.y);
-        return edgePath(a1.x, a1.y, a1.side, a2.x, a2.y, a2.side);
+        const sSide = d.sourceSide || closestSide(s, t.x, t.y);
+        const tSide = d.targetSide || closestSide(t, s.x, s.y);
+        const a1 = anchorPoint(s, sSide);
+        const a2 = anchorPoint(t, tSide);
+        return edgePath(a1.x, a1.y, sSide, a2.x, a2.y, tSide);
       })
       .attr('stroke', d => d === selectedEdge ? cssVar('--node-selected') : cssVar('--edge-color'))
       .classed('selected', d => d === selectedEdge);
@@ -966,6 +982,7 @@
     );
     if (mode !== 'add-edge') {
       connectSource = null;
+      connectSourceSide = null;
       previewLine.style('display', 'none');
     }
     updateStatusBar();
@@ -1131,8 +1148,10 @@
     event.stopPropagation();
 
     if (mode === 'add-edge') {
+      const [cx, cy] = d3.pointer(event, g.node());
       if (!connectSource) {
         connectSource = d;
+        connectSourceSide = closestSide(d, cx, cy);
         selectOnly(d);
         updateStatusBar();
       } else if (connectSource.id !== d.id) {
@@ -1142,14 +1161,18 @@
         );
         if (!exists) {
           pushHistory();
+          const targetSide = closestSide(d, cx, cy);
           edges.push({
             id: nextEdgeId++,
             source: connectSource.id,
             target: d.id,
+            sourceSide: connectSourceSide,
+            targetSide: targetSide,
           });
           save();
         }
         connectSource = null;
+        connectSourceSide = null;
         previewLine.style('display', 'none');
         clearSelection();
         setMode('select');
@@ -1280,6 +1303,7 @@
       clearSelection();
       if (mode === 'add-edge') {
         connectSource = null;
+        connectSourceSide = null;
         previewLine.style('display', 'none');
         setMode('select');
       }
@@ -1288,12 +1312,12 @@
 
   // Preview line for edge creation
   svg.on('mousemove', function(event) {
-    if (mode === 'add-edge' && connectSource) {
+    if (mode === 'add-edge' && connectSource && connectSourceSide) {
       const [x, y] = d3.pointer(event, g.node());
-      const a1 = getAnchor(connectSource, x, y);
-      const a2Side = { right: 'left', left: 'right', bottom: 'top', top: 'bottom' }[a1.side];
+      const a1 = anchorPoint(connectSource, connectSourceSide);
+      const oppSide = { right: 'left', left: 'right', bottom: 'top', top: 'bottom' }[connectSourceSide];
       previewLine
-        .attr('d', edgePath(a1.x, a1.y, a1.side, x, y, a2Side))
+        .attr('d', edgePath(a1.x, a1.y, connectSourceSide, x, y, oppSide))
         .style('display', null);
     }
   });
@@ -1559,7 +1583,7 @@
             origId: n.id,
           })),
           edges: edges.filter(e => selIds.has(e.source) && selIds.has(e.target))
-            .map(e => ({ source: e.source, target: e.target })),
+            .map(e => ({ source: e.source, target: e.target, sourceSide: e.sourceSide, targetSide: e.targetSide })),
         };
         showToast(sel.length === 1 ? 'Node copied' : `${sel.length} nodes copied`);
       }
@@ -1601,7 +1625,7 @@
           const newSource = idMap.get(ce.source);
           const newTarget = idMap.get(ce.target);
           if (newSource && newTarget) {
-            edges.push({ id: nextEdgeId++, source: newSource, target: newTarget });
+            edges.push({ id: nextEdgeId++, source: newSource, target: newTarget, sourceSide: ce.sourceSide, targetSide: ce.targetSide });
           }
         });
 
