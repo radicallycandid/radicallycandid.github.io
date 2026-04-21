@@ -1063,7 +1063,38 @@
   function onNodeDragStart(event, d) {
     dragMoved = false;
     selectionChangedInDragStart = false;
-    if (mode === 'add-edge') return;
+    if (mode === 'add-edge') {
+      const [cx, cy] = d3.pointer(event.sourceEvent, g.node());
+      if (!connectSource) {
+        connectSource = d;
+        connectSourceSide = closestSide(d, cx, cy);
+        selectOnly(d);
+        updateStatusBar();
+      } else if (connectSource.id !== d.id) {
+        const exists = edges.some(e =>
+          (e.source === connectSource.id && e.target === d.id) ||
+          (e.source === d.id && e.target === connectSource.id)
+        );
+        if (!exists) {
+          pushHistory();
+          const targetSide = closestSide(d, cx, cy);
+          edges.push({
+            id: nextEdgeId++,
+            source: connectSource.id,
+            target: d.id,
+            sourceSide: connectSourceSide,
+            targetSide: targetSide,
+          });
+          save();
+        }
+        connectSource = null;
+        connectSourceSide = null;
+        previewLine.style('display', 'none');
+        clearSelection();
+        setMode('select');
+      }
+      return;
+    }
     event.sourceEvent.stopPropagation();
 
     dragHistorySnapshot = snapshot();
@@ -1147,38 +1178,7 @@
   function onNodeClick(event, d) {
     event.stopPropagation();
 
-    if (mode === 'add-edge') {
-      const [cx, cy] = d3.pointer(event, g.node());
-      if (!connectSource) {
-        connectSource = d;
-        connectSourceSide = closestSide(d, cx, cy);
-        selectOnly(d);
-        updateStatusBar();
-      } else if (connectSource.id !== d.id) {
-        const exists = edges.some(e =>
-          (e.source === connectSource.id && e.target === d.id) ||
-          (e.source === d.id && e.target === connectSource.id)
-        );
-        if (!exists) {
-          pushHistory();
-          const targetSide = closestSide(d, cx, cy);
-          edges.push({
-            id: nextEdgeId++,
-            source: connectSource.id,
-            target: d.id,
-            sourceSide: connectSourceSide,
-            targetSide: targetSide,
-          });
-          save();
-        }
-        connectSource = null;
-        connectSourceSide = null;
-        previewLine.style('display', 'none');
-        clearSelection();
-        setMode('select');
-      }
-      return;
-    }
+    if (mode === 'add-edge') return;
 
     if (dragMoved || selectionChangedInDragStart) return;
 
