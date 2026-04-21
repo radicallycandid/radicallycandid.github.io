@@ -899,6 +899,36 @@
       .text(d => d.label);
   }
 
+  function getAnchor(node, otherX, otherY) {
+    const dx = otherX - node.x;
+    const dy = otherY - node.y;
+    if (Math.abs(dx) * NODE_H > Math.abs(dy) * NODE_W) {
+      // Horizontal dominant
+      if (dx > 0) return { x: node.x + NODE_W / 2, y: node.y, side: 'right' };
+      return { x: node.x - NODE_W / 2, y: node.y, side: 'left' };
+    }
+    // Vertical dominant
+    if (dy > 0) return { x: node.x, y: node.y + NODE_H / 2, side: 'bottom' };
+    return { x: node.x, y: node.y - NODE_H / 2, side: 'top' };
+  }
+
+  function controlOffset(side, dist) {
+    const off = Math.min(Math.max(dist * 0.4, 40), 150);
+    switch (side) {
+      case 'right':  return { x: off, y: 0 };
+      case 'left':   return { x: -off, y: 0 };
+      case 'bottom': return { x: 0, y: off };
+      case 'top':    return { x: 0, y: -off };
+    }
+  }
+
+  function edgePath(sx, sy, sSide, tx, ty, tSide) {
+    const dist = Math.hypot(tx - sx, ty - sy);
+    const c1 = controlOffset(sSide, dist);
+    const c2 = controlOffset(tSide, dist);
+    return `M${sx},${sy} C${sx + c1.x},${sy + c1.y} ${tx + c2.x},${ty + c2.y} ${tx},${ty}`;
+  }
+
   function renderEdges() {
     const paths = edgeLayer.selectAll('.edge-path')
       .data(edges, d => d.id);
@@ -917,7 +947,9 @@
         const s = nodes.find(n => n.id === d.source);
         const t = nodes.find(n => n.id === d.target);
         if (!s || !t) return '';
-        return `M${s.x},${s.y} L${t.x},${t.y}`;
+        const a1 = getAnchor(s, t.x, t.y);
+        const a2 = getAnchor(t, s.x, s.y);
+        return edgePath(a1.x, a1.y, a1.side, a2.x, a2.y, a2.side);
       })
       .attr('stroke', d => d === selectedEdge ? cssVar('--node-selected') : cssVar('--edge-color'))
       .classed('selected', d => d === selectedEdge);
@@ -1258,8 +1290,10 @@
   svg.on('mousemove', function(event) {
     if (mode === 'add-edge' && connectSource) {
       const [x, y] = d3.pointer(event, g.node());
+      const a1 = getAnchor(connectSource, x, y);
+      const a2Side = { right: 'left', left: 'right', bottom: 'top', top: 'bottom' }[a1.side];
       previewLine
-        .attr('d', `M${connectSource.x},${connectSource.y} L${x},${y}`)
+        .attr('d', edgePath(a1.x, a1.y, a1.side, x, y, a2Side))
         .style('display', null);
     }
   });
