@@ -70,7 +70,6 @@ PAGES_DIR = ROOT_DIR / "pages"
 TEMPLATES_DIR = ROOT_DIR / "templates"
 OUTPUT_DIR = ROOT_DIR / "output"
 STATIC_DIR = ROOT_DIR / "static"
-CANVAS_DIR = ROOT_DIR / "canvas"
 
 # Site metadata
 SITE_TITLE = "Vitor Margato"
@@ -1042,17 +1041,6 @@ def copy_static() -> None:
     print("  Copied: static/")
 
 
-def copy_canvas() -> None:
-    """Copy canvas directory to output if it exists."""
-    if not CANVAS_DIR.exists():
-        return
-    output_canvas = OUTPUT_DIR / "canvas"
-    if output_canvas.exists():
-        shutil.rmtree(output_canvas)
-    shutil.copytree(CANVAS_DIR, output_canvas)
-    print("  Copied: canvas/")
-
-
 def build_root_redirect() -> None:
     """
     Build the root index.html that redirects to the default language.
@@ -1117,7 +1105,6 @@ def _prepare_output_dir() -> None:
         shutil.rmtree(OUTPUT_DIR)
     OUTPUT_DIR.mkdir()
     copy_static()
-    copy_canvas()
 
 
 def _build_language(
