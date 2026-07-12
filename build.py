@@ -77,7 +77,7 @@ SITE_URL = "https://vmargato.com"
 
 # Internationalization
 LANGUAGES = ["en", "pt"]
-DEFAULT_LANG = "en"
+DEFAULT_LANG = "pt"
 
 I18N = {
     "en": {
@@ -1045,8 +1045,8 @@ def build_root_redirect() -> None:
     """
     Build the root index.html that redirects to the default language.
 
-    Checks localStorage for explicit preference, then navigator.language,
-    then falls back to DEFAULT_LANG.
+    Checks localStorage for explicit preference; a browser that explicitly
+    reports English gets /en/, everyone else gets DEFAULT_LANG (pt).
     """
     html = f"""<!DOCTYPE html>
 <html>
@@ -1063,8 +1063,8 @@ def build_root_redirect() -> None:
                 return;
             }}
             var lang = (navigator.language || '').toLowerCase();
-            if (lang.startsWith('pt')) {{
-                window.location.replace('/pt/index.html');
+            if (lang.startsWith('en')) {{
+                window.location.replace('/en/index.html');
             }} else {{
                 window.location.replace('/{DEFAULT_LANG}/index.html');
             }}
