@@ -106,16 +106,13 @@ pre > code {
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
+    line-height: 1;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
 .theme-toggle:hover {
     transform: scale(1.1);
-}
-
-.theme-toggle svg {
-    display: block;
 }
 
 .theme-toggle .sun { display: none; }
