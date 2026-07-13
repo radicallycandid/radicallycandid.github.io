@@ -30,7 +30,7 @@ PAGE_HTML = """<article>
 </article>"""
 
 INDEX_HTML = """<section>
-<ul>{{#posts}}<li>{{title}}</li>{{/posts}}</ul>
+<ul>{{#posts}}<li><a href="{{url}}">{{title}}</a></li>{{/posts}}</ul>
 {{about_html}}
 </section>"""
 
@@ -315,22 +315,38 @@ class TestCopyStatic:
             build.STATIC_DIR = original_static
 
 
-class TestBuildRootRedirect:
-    """Integration tests for build_root_redirect."""
+class TestBuildRootIndex:
+    """Integration tests for build_root_index."""
 
-    def test_creates_root_redirect(self, build_env: Path) -> None:
-        """build_root_redirect writes output/index.html with language detection."""
-        build.build_root_redirect()
+    def test_root_serves_pt_homepage_with_en_redirect(self, build_env: Path) -> None:
+        """build_root_index writes the PT homepage at output/index.html."""
+        posts = [
+            {
+                "title": "Post raiz",
+                "url": "posts/post-raiz.html",
+                "published_date": "2026-01-01",
+                "published_date_formatted": "1 jan 2026",
+                "excerpt": "",
+            }
+        ]
+        build.build_root_index(posts)
         output = build.OUTPUT_DIR / "index.html"
         assert output.exists()
         html = output.read_text()
+        # Real PT content, not a blank redirect page
+        assert 'lang="pt"' in html
+        assert "Post raiz" in html
+        assert 'http-equiv="refresh"' not in html
+        # Post links gain the pt/ prefix so they resolve from /
+        assert 'href="pt/posts/post-raiz.html"' in html
+        # Duplicate of /pt/ — canonical consolidates there
+        assert f'rel="canonical" href="{build.SITE_URL}/pt/"' in html
+        assert f'hreflang="x-default" href="{build.SITE_URL}/"' in html
+        # EN readers (saved choice or explicitly English browser) still redirect
         assert "localStorage" in html
-        assert "navigator.language" in html
         assert "lang-preference" in html
-        assert 'hreflang="en"' in html
-        assert 'hreflang="pt"' in html
-        assert 'hreflang="x-default"' in html
-        assert 'http-equiv="refresh"' in html
+        assert "navigator.language" in html
+        assert "/en/index.html" in html
 
 
 class TestRenderContentUrls:

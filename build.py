@@ -77,7 +77,6 @@ SITE_URL = "https://vmargato.com"
 
 # Internationalization
 LANGUAGES = ["en", "pt"]
-DEFAULT_LANG = "pt"
 
 I18N = {
     "en": {
@@ -899,13 +898,20 @@ def build_post(
     }
 
 
-def build_index(posts: list[dict[str, object]], lang: str) -> None:
+def _render_index_page(
+    posts: list[dict[str, object]],
+    lang: str,
+    *,
+    root: str,
+    other_lang_url: str,
+    home_url: str,
+    canonical_url: str,
+) -> str:
     """
-    Build the index page for a given language.
+    Render a language's homepage HTML.
 
-    Args:
-        posts: List of post metadata dictionaries.
-        lang: Language code ("en" or "pt").
+    Shared by build_index (under /{lang}/) and build_root_index (at /), which
+    differ only in how their relative paths resolve.
     """
     strings = I18N[lang]
     other = get_other_lang(lang)
@@ -921,24 +927,42 @@ def build_index(posts: list[dict[str, object]], lang: str) -> None:
         about_html, _ = markdown_to_html(about_body)
 
     index_content = render_template("index.html", {"posts": posts, "about_html": about_html})
-    canonical_url = f"{SITE_URL}/{lang}/"
 
-    full_html = render_template(
+    return render_template(
         "base.html",
         {
             "title": "Home",
             "content": index_content,
             "description": strings["site_description"],
             "og_type": "website",
-            "root": "../",
+            "root": root,
             "lang": lang,
             "other_lang": other,
             "has_alternate": True,
-            "other_lang_url": f"../{other}/index.html",
+            "other_lang_url": other_lang_url,
             "lang_flag": LANG_FLAGS[other],
-            "home_url": f"../{lang}/index.html",
+            "home_url": home_url,
             "canonical_url": canonical_url,
         },
+    )
+
+
+def build_index(posts: list[dict[str, object]], lang: str) -> None:
+    """
+    Build the index page for a given language.
+
+    Args:
+        posts: List of post metadata dictionaries.
+        lang: Language code ("en" or "pt").
+    """
+    other = get_other_lang(lang)
+    full_html = _render_index_page(
+        posts,
+        lang,
+        root="../",
+        other_lang_url=f"../{other}/index.html",
+        home_url=f"../{lang}/index.html",
+        canonical_url=f"{SITE_URL}/{lang}/",
     )
 
     output_path = OUTPUT_DIR / lang / "index.html"
@@ -1041,42 +1065,42 @@ def copy_static() -> None:
     print("  Copied: static/")
 
 
-def build_root_redirect() -> None:
+def build_root_index(posts: list[dict[str, object]]) -> None:
     """
-    Build the root index.html that redirects to the default language.
+    Build the root index.html: the PT homepage served directly at /.
 
-    Checks localStorage for explicit preference; a browser that explicitly
-    reports English gets /en/, everyone else gets DEFAULT_LANG (pt).
+    The apex URL shows real content instead of a blank JS redirect page, so
+    no-JS visitors and link previews get the PT homepage. A small head script
+    still sends readers to /en/ when they chose EN earlier (localStorage) or
+    their browser explicitly reports English; everyone else reads PT with
+    zero extra hops. The canonical points at /pt/, which this page duplicates.
     """
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <link rel="alternate" hreflang="en" href="{SITE_URL}/en/index.html">
-    <link rel="alternate" hreflang="pt" href="{SITE_URL}/pt/index.html">
-    <link rel="alternate" hreflang="x-default" href="{SITE_URL}/{DEFAULT_LANG}/index.html">
+    rooted_posts = [dict(p, url=f"pt/{p['url']}") for p in posts]
+    full_html = _render_index_page(
+        rooted_posts,
+        "pt",
+        root="",
+        other_lang_url="en/index.html",
+        home_url="./",
+        canonical_url=f"{SITE_URL}/pt/",
+    )
+
+    head_extra = f"""
+    <link rel="alternate" hreflang="x-default" href="{SITE_URL}/">
     <script>
-        (function() {{
-            var pref = localStorage.getItem('lang-preference');
-            if (pref && (pref === 'en' || pref === 'pt')) {{
-                window.location.replace('/' + pref + '/index.html');
-                return;
-            }}
-            var lang = (navigator.language || '').toLowerCase();
-            if (lang.startsWith('en')) {{
-                window.location.replace('/en/index.html');
-            }} else {{
-                window.location.replace('/{DEFAULT_LANG}/index.html');
-            }}
-        }})();
-    </script>
-    <meta http-equiv="refresh" content="0;url=/{DEFAULT_LANG}/index.html">
-</head>
-<body></body>
-</html>"""
+    (function () {{
+        var pref = null;
+        try {{ pref = localStorage.getItem('lang-preference'); }} catch (e) {{ /* private mode */ }}
+        var wantsEn = pref === 'en' ||
+            (!pref && (navigator.language || '').toLowerCase().indexOf('en') === 0);
+        if (wantsEn) {{ window.location.replace('/en/index.html'); }}
+    }})();
+    </script>"""
+    full_html = full_html.replace("<head>", "<head>" + head_extra, 1)
+
     output_path = OUTPUT_DIR / "index.html"
-    output_path.write_text(html)
-    print(f"  Built: {output_path.relative_to(ROOT_DIR)} (redirect)")
+    output_path.write_text(full_html)
+    print(f"  Built: {output_path.relative_to(ROOT_DIR)} (root: PT homepage + EN redirect)")
 
 
 def clean() -> None:
@@ -1113,8 +1137,13 @@ def _build_language(
     page_pairs: dict[str, dict[str, Path]],
     warnings: list[str],
     errors: list[str],
-) -> tuple[int, int]:
-    """Build all content for a single language. Return (post_count, page_count)."""
+) -> tuple[int, int, list[dict[str, object]]]:
+    """
+    Build all content for a single language.
+
+    Returns (post_count, page_count, public_posts) — the public (non-draft)
+    posts feed build_root_index after the per-language loop.
+    """
     print(f"  [{lang.upper()}]")
 
     # Build posts
@@ -1153,7 +1182,7 @@ def _build_language(
     if public_posts:
         build_feed(public_posts, lang)
 
-    return len(posts), page_count
+    return len(posts), page_count, public_posts
 
 
 def _copy_cname() -> None:
@@ -1189,14 +1218,17 @@ def build() -> bool:
 
     total_posts = 0
     total_pages = 0
+    pt_public_posts: list[dict[str, object]] = []
     for lang in LANGUAGES:
-        posts, pages = _build_language(
+        posts, pages, public_posts = _build_language(
             lang, post_pairs, page_pairs, warnings, errors
         )
+        if lang == "pt":
+            pt_public_posts = public_posts
         total_posts += posts
         total_pages += pages
 
-    build_root_redirect()
+    build_root_index(pt_public_posts)
     _copy_cname()
 
     if warnings:
