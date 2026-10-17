@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from build import render_template
 
 
@@ -19,10 +17,7 @@ class TestRenderTemplate:
     def test_multiple_variables(self, mock_templates_dir: Path) -> None:
         """Replace multiple variables."""
         (mock_templates_dir / "test.html").write_text("<h1>{{title}}</h1><p>{{content}}</p>")
-        result = render_template("test.html", {
-            "title": "Title",
-            "content": "Body text"
-        })
+        result = render_template("test.html", {"title": "Title", "content": "Body text"})
         assert result == "<h1>Title</h1><p>Body text</p>"
 
     def test_missing_variable_left_unchanged(self, mock_templates_dir: Path) -> None:
@@ -48,13 +43,16 @@ class TestRenderTemplate:
         (mock_templates_dir / "test.html").write_text(
             "<ul>{{#items}}<li>{{name}}</li>{{/items}}</ul>"
         )
-        result = render_template("test.html", {
-            "items": [
-                {"name": "One"},
-                {"name": "Two"},
-                {"name": "Three"},
-            ]
-        })
+        result = render_template(
+            "test.html",
+            {
+                "items": [
+                    {"name": "One"},
+                    {"name": "Two"},
+                    {"name": "Three"},
+                ]
+            },
+        )
         assert result == "<ul><li>One</li><li>Two</li><li>Three</li></ul>"
 
     def test_empty_list(self, mock_templates_dir: Path) -> None:

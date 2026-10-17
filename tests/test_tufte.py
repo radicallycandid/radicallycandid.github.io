@@ -1,7 +1,5 @@
 """Tests for Tufte-specific conversions."""
 
-import pytest
-
 from build import convert_newthought, convert_sidenotes
 
 

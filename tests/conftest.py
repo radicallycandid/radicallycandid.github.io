@@ -1,5 +1,6 @@
 """Shared test fixtures."""
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ import build
 
 
 @pytest.fixture
-def mock_templates_dir(tmp_path: Path) -> Path:
+def mock_templates_dir(tmp_path: Path) -> Iterator[Path]:
     original = build.TEMPLATES_DIR
     build.TEMPLATES_DIR = tmp_path
     yield tmp_path

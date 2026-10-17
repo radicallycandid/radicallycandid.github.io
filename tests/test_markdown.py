@@ -1,7 +1,5 @@
 """Tests for markdown conversion functions."""
 
-import pytest
-
 from build import basic_markdown_to_html
 
 

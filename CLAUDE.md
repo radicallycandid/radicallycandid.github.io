@@ -9,12 +9,16 @@ Live at **vmargato.com**, deployed via GitHub Pages.
 ## Commands
 
 ```bash
+make install-dev         # uv sync --extra dev (pinned by uv.lock)
 python build.py          # Build the site (output/ directory)
 python build.py serve    # Build + local server on :8000
 python build.py clean    # Remove output/
 make test                # Run pytest
-make lint                # Run ruff
+make lint                # Run ruff check + format check
+make typecheck           # Run mypy --strict
 ```
+
+Dependencies live only in `pyproject.toml`; `uv.lock` pins them. Run tools through `uv run`.
 
 After any content or template change, run `python build.py` and check `output/` before committing. The `output/` directory is gitignored — GitHub Pages serves from the main branch directly (build.py generates into output/, but deployment uses the repo root via a separate process or Pages config).
 
