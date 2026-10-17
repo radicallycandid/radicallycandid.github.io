@@ -331,7 +331,7 @@ const STRINGS = {
       'proc-markdown':    { label: 'Markdown \u2192 HTML',
         desc: 'Convert markdown syntax to HTML. Headers, bold, links, lists, code blocks become HTML elements.' },
       'proc-tufte':       { label: 'Tufte Extensions',
-        desc: 'Transform custom syntax: {mn}\u2192margin notes, {sn}\u2192numbered sidenotes, {nt}\u2192small-caps new thoughts.' },
+        desc: 'Transform custom syntax: {mn}\u2192margin notes, {sn}\u2192numbered sidenotes, {nt}\u2192small-caps new thoughts. Runs inside the Markdown conversion as an extension, so code stays literal.' },
       'proc-toc':         { label: 'Table of Contents',
         desc: 'Scan HTML for h2/h3 headings. If 3 or more found, generate a sidebar navigation with anchor links.' },
       'proc-template':    { label: 'Render Templates',
@@ -361,7 +361,7 @@ const STRINGS = {
       'proc-markdown':    { label: 'Markdown \u2192 HTML',
         desc: 'Converter sintaxe markdown para HTML. T\u00edtulos, negrito, links, listas, blocos de c\u00f3digo viram elementos HTML.' },
       'proc-tufte':       { label: 'Extens\u00f5es Tufte',
-        desc: 'Transformar sintaxe customizada: {mn}\u2192margin notes, {sn}\u2192sidenotes numeradas, {nt}\u2192versaletes.' },
+        desc: 'Transformar sintaxe customizada: {mn}\u2192margin notes, {sn}\u2192sidenotes numeradas, {nt}\u2192versaletes. Roda dentro da convers\u00e3o de Markdown, como extens\u00e3o, ent\u00e3o c\u00f3digo fica intacto.' },
       'proc-toc':         { label: '\u00cdndice',
         desc: 'Escanear HTML buscando h2/h3. Se 3 ou mais forem encontrados, gerar navega\u00e7\u00e3o lateral com links \u00e2ncora.' },
       'proc-template':    { label: 'Renderizar Templates',
@@ -406,13 +406,13 @@ body = "## One Script\\n\\n..."`,
 
 This entire site is generated
 by a single Python script.
-About 1,300 lines. One runtime
+About 1,150 lines. One runtime
 dependency (\`markdown\`).`,
     after: `<h2>One Script</h2>
 
 <p>This entire site is generated
 by a single Python script.
-About 1,300 lines. One runtime
+About 1,150 lines. One runtime
 dependency (<code>markdown</code>
 ).</p>`,
     explain: 'Headers, bold, italic, links, lists, code blocks, and tables are converted to their corresponding HTML elements.'
@@ -462,28 +462,28 @@ breaking my reading flow?</span>`,
     title: 'Render Templates',
     before: `<!-- post.html -->
 <h1>{{title}}</h1>
-<p class="subtitle">
-  {{published_date}}</p>
-{{content}}
+<time class="post-date">
+  {{published_date}}</time>
+<section>{{body}}</section>
 
 <!-- base.html -->
-<a class="site-title">
-  {{site_title}}</a>
+<title>{{title}} - Vitor
+  Margato</title>
 {{#has_alternate}}
   <a href="{{other_lang_url}}">
-{{/has_alternate}}`,
-    after: `<h1>How This Site Works</h1>
-<p class="subtitle">
-  March 03, 2026</p>
+{{/has_alternate}}
+{{content}}`,
+    after: `<title>How This Site Works -
+  Vitor Margato</title>
+<a href="../../pt/posts/...">
+<h1>How This Site Works</h1>
+<time class="post-date">
+  March 03, 2026</time>
 <section>
   <h2>One Script</h2>
   <p>This entire site is...</p>
-</section>
-
-<a class="site-title">
-  Vitor Margato</a>
-<a href="/pt/posts/...">`,
-    explain: 'Replaces {{placeholders}} with values. Each page goes through the content template first, then gets wrapped in the base template with header, navigation, and language switcher.'
+</section>`,
+    explain: 'Replaces {{placeholders}} with values in a single pass, so text that was just inserted is never scanned again. Each page goes through the content template first, then gets wrapped in the base template with header, navigation, and language switcher. A placeholder with no value in the context stops the build with an error.'
   },
   'proc-listings': {
     title: 'Index & Feeds',
@@ -549,13 +549,13 @@ body = "## Um script\\n\\n..."`,
 
 Este site inteiro \u00e9 gerado por
 um \u00fanico script Python. Cerca de
-1.300 linhas. Uma depend\u00eancia
+1.150 linhas. Uma depend\u00eancia
 de runtime (\`markdown\`).`,
     after: `<h2>Um script</h2>
 
 <p>Este site inteiro \u00e9 gerado por
 um \u00fanico script Python. Cerca de
-1.300 linhas. Uma depend\u00eancia
+1.150 linhas. Uma depend\u00eancia
 de runtime (<code>markdown</code>
 ).</p>`,
     explain: 'T\u00edtulos, negrito, it\u00e1lico, links, listas, blocos de c\u00f3digo e tabelas s\u00e3o convertidos para os elementos HTML correspondentes.'
@@ -606,28 +606,28 @@ leitura?</span>`,
     title: 'Renderizar Templates',
     before: `<!-- post.html -->
 <h1>{{title}}</h1>
-<p class="subtitle">
-  {{published_date}}</p>
-{{content}}
+<time class="post-date">
+  {{published_date}}</time>
+<section>{{body}}</section>
 
 <!-- base.html -->
-<a class="site-title">
-  {{site_title}}</a>
+<title>{{title}} - Vitor
+  Margato</title>
 {{#has_alternate}}
   <a href="{{other_lang_url}}">
-{{/has_alternate}}`,
-    after: `<h1>Como este site funciona</h1>
-<p class="subtitle">
-  3 de mar\u00e7o de 2026</p>
+{{/has_alternate}}
+{{content}}`,
+    after: `<title>Como este site funciona -
+  Vitor Margato</title>
+<a href="../../en/posts/...">
+<h1>Como este site funciona</h1>
+<time class="post-date">
+  3 de mar\u00e7o de 2026</time>
 <section>
   <h2>Um script</h2>
   <p>Este site inteiro \u00e9...</p>
-</section>
-
-<a class="site-title">
-  Vitor Margato</a>
-<a href="/en/posts/...">`,
-    explain: 'Substitui {{placeholders}} por valores. Cada p\u00e1gina passa pelo template de conte\u00fado primeiro, depois \u00e9 envolvida pelo template base com header, navega\u00e7\u00e3o e seletor de idioma.'
+</section>`,
+    explain: 'Substitui {{placeholders}} por valores numa passada s\u00f3, ent\u00e3o o texto rec\u00e9m-inserido nunca \u00e9 lido de novo. Cada p\u00e1gina passa pelo template de conte\u00fado primeiro, depois \u00e9 envolvida pelo template base com header, navega\u00e7\u00e3o e seletor de idioma. Um placeholder sem valor no contexto interrompe o build com erro.'
   },
   'proc-listings': {
     title: '\u00cdndice & Feeds',
