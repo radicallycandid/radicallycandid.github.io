@@ -8,15 +8,15 @@
 
 ## Build the static site
 build:
-	python build.py build
+	uv run python build.py build
 
 ## Build and start local development server
 serve:
-	python build.py serve
+	uv run python build.py serve
 
 ## Remove output directory
 clean:
-	python build.py clean
+	uv run python build.py clean
 
 ## Install dependencies
 install:
