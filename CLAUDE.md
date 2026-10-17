@@ -77,8 +77,8 @@ Things to be aware of when modifying the codebase. All have been reviewed and in
 ### Regex and template engine
 
 - **No nesting.** Sidenote/marginnote regex (`{sn}...{/sn}`) and template block regex (`{{#key}}...{{/key}}`) both use non-greedy `.*?`. Nesting the same tag type will match incorrectly. No content or template uses nesting, so this is fine.
-- **Template values are trusted.** No `{{` escaping, no HTML escaping. All context values (titles, excerpts, body) pass through raw. Safe because all content is author-controlled.
-- **Loop items must be dicts.** Passing strings or primitives to `{{#key}}...{{/key}}` loops produces unresolved placeholders.
+- **Template values are trusted.** No HTML escaping. All context values (titles, excerpts, body) pass through raw, though a `{{...}}` inside a value is never re-rendered. Safe because all content is author-controlled.
+- **Loop items must be dicts.** A non-dict item renders with the outer context only, so its own placeholders raise `BuildError` as unknown variables.
 
 ### URL construction
 

@@ -453,6 +453,9 @@ def render_template(template_name: str, context: dict[str, object]) -> str:
 
     Returns:
         Rendered HTML string.
+
+    Raises:
+        BuildError: If the template uses a variable missing from the context.
     """
     template_path = TEMPLATES_DIR / template_name
     cache_key = str(template_path)
@@ -460,34 +463,33 @@ def render_template(template_name: str, context: dict[str, object]) -> str:
         _template_cache[cache_key] = template_path.read_text()
     template = _template_cache[cache_key]
 
+    # Blocks and variables are matched in a single left-to-right pass, so text
+    # that was just inserted (a post body, a title) is never scanned again.
     def render_content(content: str, ctx: dict[str, object]) -> str:
-        def replace_block(match: re.Match[str]) -> str:
+        def replace(match: re.Match[str]) -> str:
             key = match.group(1)
-            inner = match.group(2)
-            value = ctx.get(key)
+            if key is not None:
+                inner = match.group(2)
+                value = ctx.get(key)
+                if isinstance(value, list):
+                    # Loop items see the outer context too, item keys first
+                    return "".join(
+                        render_content(inner, {**ctx, **item} if isinstance(item, dict) else ctx)
+                        for item in value
+                    )
+                elif value:
+                    return render_content(inner, ctx)
+                return ""
 
-            if isinstance(value, list):
-                result = []
-                for item in value:
-                    rendered = inner
-                    if isinstance(item, dict):
-                        rendered = render_content(rendered, item)
-                    result.append(rendered)
-                return "".join(result)
-            elif value:
-                return render_content(inner, ctx)
-            return ""
+            key = match.group(3)
+            if key not in ctx:
+                raise BuildError(f"Template {template_name}: unknown variable '{key}'")
+            value = ctx[key]
+            return str(value) if value else ""
 
-        content = re.sub(
-            r"\{\{#(\w+)\}\}(.*?)\{\{/\1\}\}", replace_block, content, flags=re.DOTALL
+        return re.sub(
+            r"\{\{#(\w+)\}\}(.*?)\{\{/\1\}\}|\{\{(\w+)\}\}", replace, content, flags=re.DOTALL
         )
-
-        # Simple variable replacement
-        for key, value in ctx.items():
-            if not isinstance(value, list):
-                content = content.replace("{{" + key + "}}", str(value) if value else "")
-
-        return content
 
     return render_content(template, context)
 
