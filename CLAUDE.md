@@ -6,6 +6,8 @@ vmargato.com, a personal blog built on a custom static site generator. No framew
 
 Live at **vmargato.com**, deployed via GitHub Pages.
 
+Vitor is the sole developer. Commit and push straight to `main`, no PR flow. A push to `main` deploys, so run the checks first and confirm CI is green on the pushed SHA afterwards.
+
 ## Commands
 
 ```bash
