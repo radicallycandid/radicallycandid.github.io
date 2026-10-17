@@ -22,9 +22,13 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from xml.etree import ElementTree as etree
 from xml.sax.saxutils import escape as xml_escape
 
 import markdown
+from markdown.extensions import Extension
+from markdown.inlinepatterns import InlineProcessor
+from markdown.treeprocessors import Treeprocessor
 
 # =============================================================================
 # Exceptions
@@ -108,7 +112,7 @@ LANG_FLAGS = {
         '<rect y="69" width="100" height="7.7" fill="#fff"/>'
         '<rect y="84" width="100" height="7.7" fill="#fff"/>'
         '<rect width="42" height="54" fill="#002868"/>'
-        '</g></svg>'
+        "</g></svg>"
     ),
     "pt": (
         '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">'
@@ -118,7 +122,7 @@ LANG_FLAGS = {
         '<polygon points="5,50 50,10 95,50 50,90" fill="#ffdf00"/>'
         '<circle cx="50" cy="50" r="20" fill="#002776"/>'
         '<circle cx="50" cy="50" r="17" fill="none" stroke="#fff" stroke-width="1.5"/>'
-        '</g></svg>'
+        "</g></svg>"
     ),
 }
 
@@ -168,9 +172,7 @@ def parse_frontmatter(content: str, filepath: Path | None = None) -> tuple[dict[
     if content.startswith("---"):
         parts = content.split("---", 2)
         if len(parts) < 3:
-            raise FrontmatterError(
-                f"Malformed frontmatter{location}: missing closing '---'"
-            )
+            raise FrontmatterError(f"Malformed frontmatter{location}: missing closing '---'")
 
         fm_text = parts[1].strip()
         body = parts[2].strip()
@@ -190,9 +192,7 @@ def parse_frontmatter(content: str, filepath: Path | None = None) -> tuple[dict[
     return frontmatter, body
 
 
-def validate_frontmatter(
-    frontmatter: dict[str, str], filepath: Path | None = None
-) -> list[str]:
+def validate_frontmatter(frontmatter: dict[str, str], filepath: Path | None = None) -> list[str]:
     """
     Validate frontmatter and return list of warnings.
 
@@ -222,8 +222,7 @@ def validate_frontmatter(
             datetime.strptime(frontmatter["date"], DATE_FORMAT_INPUT)
         except ValueError:
             warnings.append(
-                f"{location}: invalid date format '{frontmatter['date']}' "
-                f"(expected YYYY-MM-DD)"
+                f"{location}: invalid date format '{frontmatter['date']}' (expected YYYY-MM-DD)"
             )
 
     return warnings
@@ -234,63 +233,70 @@ def validate_frontmatter(
 # =============================================================================
 
 
-def convert_sidenotes(html: str) -> str:
+# The Tufte syntax is parsed by Python-Markdown itself, as an inline pattern, so
+# code spans and fenced blocks (which the library stashes before inline patterns
+# run) keep {sn}, {mn} and {nt} literal.
+TUFTE_RE = r"\{(sn|mn|nt)\}(.*?)\{/\1\}"
+TUFTE_CLASSES = {"sn": "sidenote", "mn": "marginnote", "nt": "newthought"}
+
+
+class TufteInlineProcessor(InlineProcessor):
     """
-    Convert custom sidenote/marginnote syntax to Tufte HTML.
+    Turn {sn}...{/sn}, {mn}...{/mn} and {nt}...{/nt} into spans.
 
-    Syntax:
-        {sn}This is a sidenote{/sn}  -> numbered sidenote
-        {mn}This is a margin note{/mn} -> unnumbered margin note
-
-    Args:
-        html: HTML content with sidenote syntax.
-
-    Returns:
-        HTML with Tufte sidenote markup.
+    Sidenotes and margin notes get a temporary data-tufte attribute so
+    TufteNoteTreeprocessor can add their label and checkbox afterwards.
     """
-    sidenote_counter = [0]  # Use list to allow modification in nested function
 
-    def replace_sidenote(match: re.Match[str]) -> str:
-        sidenote_counter[0] += 1
-        note_id = f"sn-{sidenote_counter[0]}"
-        content = match.group(1)
-        return (
-            f'<label for="{note_id}" class="margin-toggle sidenote-number"></label>'
-            f'<input type="checkbox" id="{note_id}" class="margin-toggle"/>'
-            f'<span class="sidenote">{content}</span>'
-        )
-
-    def replace_marginnote(match: re.Match[str]) -> str:
-        sidenote_counter[0] += 1
-        note_id = f"mn-{sidenote_counter[0]}"
-        content = match.group(1)
-        return (
-            f'<label for="{note_id}" class="margin-toggle">&#8853;</label>'
-            f'<input type="checkbox" id="{note_id}" class="margin-toggle"/>'
-            f'<span class="marginnote">{content}</span>'
-        )
-
-    html = re.sub(r"\{sn\}(.*?)\{/sn\}", replace_sidenote, html, flags=re.DOTALL)
-    html = re.sub(r"\{mn\}(.*?)\{/mn\}", replace_marginnote, html, flags=re.DOTALL)
-
-    return html
+    def handleMatch(  # type: ignore[override]
+        self, m: re.Match[str], data: str
+    ) -> tuple[etree.Element, int, int]:
+        kind = m.group(1)
+        el = etree.Element("span", {"class": TUFTE_CLASSES[kind]})
+        el.text = m.group(2)
+        if kind != "nt":
+            el.set("data-tufte", kind)
+        return el, m.start(0), m.end(0)
 
 
-def convert_newthought(html: str) -> str:
+class TufteNoteTreeprocessor(Treeprocessor):
     """
-    Convert {nt}Text{/nt} to Tufte newthought spans.
+    Put the margin-toggle label and checkbox right before each note span.
 
-    Newthought is used to begin a new section with small-caps styling.
-
-    Args:
-        html: HTML content with newthought syntax.
-
-    Returns:
-        HTML with newthought spans.
+    Sidenotes and margin notes share one counter, in document order.
     """
-    return re.sub(
-        r"\{nt\}(.*?)\{/nt\}", r'<span class="newthought">\1</span>', html
-    )
+
+    def run(self, root: etree.Element) -> None:
+        parents = {child: parent for parent in root.iter() for child in parent}
+        notes = [el for el in root.iter("span") if el.get("data-tufte")]
+        for counter, note in enumerate(notes, start=1):
+            kind = note.attrib.pop("data-tufte")
+            note_id = f"{kind}-{counter}"
+            if kind == "sn":
+                label = f'<label for="{note_id}" class="margin-toggle sidenote-number"></label>'
+            else:
+                label = f'<label for="{note_id}" class="margin-toggle">&#8853;</label>'
+            toggle = f'<input type="checkbox" id="{note_id}" class="margin-toggle"/>'
+            # Stashed as raw HTML (not elements) to keep the attribute order.
+            placeholder = self.md.htmlStash.store(label + toggle)
+            parent = parents[note]
+            index = list(parent).index(note)
+            if index == 0:
+                parent.text = (parent.text or "") + placeholder
+            else:
+                prev = parent[index - 1]
+                prev.tail = (prev.tail or "") + placeholder
+
+
+class TufteExtension(Extension):
+    """Python-Markdown extension for sidenotes, margin notes and newthoughts."""
+
+    def extendMarkdown(self, md: markdown.Markdown) -> None:
+        # Right after backticks (190): code spans are already stashed, while
+        # links, emphasis and the other inline patterns still run inside notes.
+        md.inlinePatterns.register(TufteInlineProcessor(TUFTE_RE, md), "tufte", 185)
+        # After the inline patterns (20), before prettify (10).
+        md.treeprocessors.register(TufteNoteTreeprocessor(md), "tufte_notes", 15)
 
 
 # =============================================================================
@@ -390,9 +396,7 @@ def generate_toc_html(headings: list[dict[str, str | int]]) -> str:
     for heading in headings:
         level_class = "toc-h2" if heading["level"] == 2 else "toc-h3"
         lines.append(
-            f'<li class="{level_class}">'
-            f'<a href="#{heading["id"]}">{heading["text"]}</a>'
-            f"</li>"
+            f'<li class="{level_class}"><a href="#{heading["id"]}">{heading["text"]}</a></li>'
         )
 
     lines.append("</ul>")
@@ -416,12 +420,8 @@ def markdown_to_html(text: str) -> tuple[str, list[dict[str, str | int]]]:
     Returns:
         Tuple of (HTML string, list of headings).
     """
-    md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
+    md = markdown.Markdown(extensions=["fenced_code", "tables", "toc", TufteExtension()])
     html = md.convert(text)
-
-    # Apply Tufte-specific conversions
-    html = convert_sidenotes(html)
-    html = convert_newthought(html)
 
     # Extract headings for ToC
     headings = extract_headings(html)
@@ -838,7 +838,7 @@ def build_feed(posts: list[dict[str, object]], lang: str) -> None:
         entries.append(
             f"  <entry>\n"
             f"    <title>{xml_escape(str(post['title']))}</title>\n"
-            f"    <link href=\"{SITE_URL}/{lang}/{post['url']}\"/>\n"
+            f'    <link href="{SITE_URL}/{lang}/{post["url"]}"/>\n'
             f"    <id>{SITE_URL}/{lang}/{post['url']}</id>\n"
             f"    <updated>{post['published_date']}T00:00:00Z</updated>\n"
             f"    <summary>{xml_escape(str(post.get('excerpt', '')))}</summary>\n"
@@ -856,8 +856,7 @@ def build_feed(posts: list[dict[str, object]], lang: str) -> None:
         f"  <id>{SITE_URL}/{lang}/</id>\n"
         f"  <author>\n"
         f"    <name>{SITE_TITLE}</name>\n"
-        f"  </author>\n"
-        + "\n".join(entries) + "\n"
+        f"  </author>\n" + "\n".join(entries) + "\n"
         "</feed>\n"
     )
 
@@ -1034,9 +1033,7 @@ def build(strict: bool = False) -> bool:
     total_pages = 0
     pt_public_posts: list[dict[str, object]] = []
     for lang in LANGUAGES:
-        posts, pages, public_posts = _build_language(
-            lang, post_pairs, page_pairs, warnings, errors
-        )
+        posts, pages, public_posts = _build_language(lang, post_pairs, page_pairs, warnings, errors)
         if lang == "pt":
             pt_public_posts = public_posts
         total_posts += posts
