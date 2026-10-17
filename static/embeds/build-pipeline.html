@@ -9,15 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/js/theme.js"></script>
 <script>
-const isEmbed = new URLSearchParams(window.location.search).has('embed');
+// ?embed hides standalone chrome; ?lang=pt|en picks the strings (default en).
+const params = new URLSearchParams(window.location.search);
+const isEmbed = params.has('embed');
+const LANG = params.get('lang') === 'pt' ? 'pt' : 'en';
+document.documentElement.lang = LANG;
 if (isEmbed) {
   document.documentElement.classList.add('embed');
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'theme-change') {
-      document.documentElement.setAttribute('data-theme', e.data.theme);
-    }
-  });
 }
+// Theme sync: when the parent page (same origin) toggles the theme, theme.js
+// writes localStorage, which fires a storage event in this frame.
+window.addEventListener('storage', function(e) {
+  if (e.key === 'theme-preference' && e.newValue) {
+    document.documentElement.setAttribute('data-theme', e.newValue);
+  }
+});
 </script>
 <style>
   :root {
@@ -266,23 +272,21 @@ if (isEmbed) {
   </div>
   <div class="detail-body">
     <div class="detail-col">
-      <div class="detail-label">Before</div>
+      <div class="detail-label" id="label-before"></div>
       <pre><code id="detail-before"></code></pre>
     </div>
     <div class="detail-arrow">&rarr;</div>
     <div class="detail-col">
-      <div class="detail-label">After</div>
+      <div class="detail-label" id="label-after"></div>
       <pre><code id="detail-after"></code></pre>
     </div>
   </div>
   <p class="detail-explain" id="detail-explain"></p>
 </div>
 
-<div class="instructions" id="instructions">
-  Hover for details · Click a processing step to see transformations
-</div>
+<div class="instructions" id="instructions"></div>
 
-<button class="center-btn" onclick="centerGraph()">Center</button>
+<button class="center-btn" id="center-btn" onclick="centerGraph()"></button>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
@@ -290,75 +294,92 @@ if (isEmbed) {
 const NW = 150, NH = 30, NR = 6;
 
 const nodes = [
-  { id: 'src-posts',     type: 'source',  label: 'posts/*.md',        x: 115, y: 90,
-    desc: 'Markdown blog posts organized by language (en/, pt/). Each has YAML frontmatter and a markdown body.' },
-  { id: 'src-pages',     type: 'source',  label: 'pages/*.md',        x: 115, y: 175,
-    desc: 'Standalone pages like About. Same format as posts but not listed on the homepage.' },
-  { id: 'src-templates', type: 'source',  label: 'templates/',        x: 115, y: 340,
-    desc: 'Four HTML templates: base.html (shell), post.html, page.html, index.html. Simple mustache-like syntax.' },
-  { id: 'src-static',    type: 'source',  label: 'static/',           x: 115, y: 475,
-    desc: 'CSS (Tufte + custom), JavaScript, fonts, and interactive embeds like this one. Copied as-is to output.' },
+  { id: 'src-posts',     type: 'source',  label: 'posts/*.md',        x: 115, y: 90 },
+  { id: 'src-pages',     type: 'source',  label: 'pages/*.md',        x: 115, y: 175 },
+  { id: 'src-templates', type: 'source',  label: 'templates/',        x: 115, y: 340 },
+  { id: 'src-static',    type: 'source',  label: 'static/',           x: 115, y: 475 },
 
-  { id: 'proc-frontmatter', type: 'process', label: 'Parse Frontmatter', x: 450, y: 90,
-    desc: 'Extract metadata (title, date, excerpt, draft) from the YAML-like block between --- delimiters.' },
-  { id: 'proc-markdown',    type: 'process', label: 'Markdown \u2192 HTML',   x: 450, y: 165,
-    desc: 'Convert markdown syntax to HTML. Headers, bold, links, lists, code blocks become HTML elements.' },
-  { id: 'proc-tufte',       type: 'process', label: 'Tufte Extensions',  x: 450, y: 240,
-    desc: 'Transform custom syntax: {mn}\u2192margin notes, {sn}\u2192numbered sidenotes, {nt}\u2192small-caps new thoughts.' },
-  { id: 'proc-toc',         type: 'process', label: 'Table of Contents', x: 450, y: 315,
-    desc: 'Scan HTML for h2/h3 headings. If 3 or more found, generate a sidebar navigation with anchor links.' },
-  { id: 'proc-template',    type: 'process', label: 'Render Templates',  x: 450, y: 390,
-    desc: 'Fill template placeholders with values. Post template (title, date, body), then base template (header, nav, language switcher).' },
-  { id: 'proc-listings',    type: 'process', label: 'Index & Feeds',     x: 450, y: 465,
-    desc: 'Collect all post metadata, filter out drafts, sort by date. Generate the homepage listing and Atom XML feed.' },
+  { id: 'proc-frontmatter', type: 'process', x: 450, y: 90 },
+  { id: 'proc-markdown',    type: 'process', x: 450, y: 165 },
+  { id: 'proc-tufte',       type: 'process', x: 450, y: 240 },
+  { id: 'proc-toc',         type: 'process', x: 450, y: 315 },
+  { id: 'proc-template',    type: 'process', x: 450, y: 390 },
+  { id: 'proc-listings',    type: 'process', x: 450, y: 465 },
 
-  { id: 'out-posts',  type: 'output', label: 'posts/*.html', x: 810, y: 390,
-    desc: 'Rendered blog post pages, one per post per language.' },
-  { id: 'out-index',  type: 'output', label: 'index.html',   x: 810, y: 465,
-    desc: 'Homepage with about section and chronological post listing (drafts excluded).' },
-  { id: 'out-feed',   type: 'output', label: 'feed.xml',     x: 810, y: 520,
-    desc: 'Atom syndication feed for RSS readers.' },
-  { id: 'out-static', type: 'output', label: 'static/',      x: 810, y: 555,
-    desc: 'Static assets copied unchanged to the output directory.' },
+  { id: 'out-posts',  type: 'output', label: 'posts/*.html', x: 810, y: 390 },
+  { id: 'out-index',  type: 'output', label: 'index.html',   x: 810, y: 465 },
+  { id: 'out-feed',   type: 'output', label: 'feed.xml',     x: 810, y: 520 },
+  { id: 'out-static', type: 'output', label: 'static/',      x: 810, y: 555 },
 ];
 
-const nodeMap = {};
-nodes.forEach(n => nodeMap[n.id] = n);
-
-const edges = [
-  { source: 'src-posts',        target: 'proc-frontmatter', type: 'horizontal' },
-  { source: 'src-pages',        target: 'proc-frontmatter', type: 'horizontal' },
-  { source: 'src-templates',    target: 'proc-template',    type: 'horizontal' },
-  { source: 'proc-frontmatter', target: 'proc-markdown',    type: 'vertical' },
-  { source: 'proc-markdown',    target: 'proc-tufte',       type: 'vertical' },
-  { source: 'proc-tufte',       target: 'proc-toc',         type: 'vertical' },
-  { source: 'proc-toc',         target: 'proc-template',    type: 'vertical' },
-  { source: 'proc-frontmatter', target: 'proc-listings',    type: 'branch' },
-  { source: 'proc-template',    target: 'out-posts',        type: 'horizontal' },
-  { source: 'proc-listings',    target: 'out-index',        type: 'horizontal' },
-  { source: 'proc-listings',    target: 'out-feed',         type: 'horizontal' },
-  { source: 'src-static',       target: 'out-static',       type: 'copy' },
-];
-
-// Compute SVG paths for edges
-edges.forEach(e => {
-  const s = nodeMap[e.source], t = nodeMap[e.target];
-  if (e.type === 'vertical') {
-    e.path = `M ${s.x},${s.y + NH/2} L ${t.x},${t.y - NH/2}`;
-  } else if (e.type === 'branch') {
-    const sx = s.x + NW/2, sy = s.y;
-    const tx = t.x + NW/2, ty = t.y;
-    e.path = `M ${sx},${sy} C ${sx + 70},${sy} ${tx + 70},${ty} ${tx},${ty}`;
-  } else {
-    // horizontal and copy
-    const sx = s.x + NW/2, sy = s.y;
-    const tx = t.x - NW/2, ty = t.y;
-    e.path = d3.linkHorizontal()({ source: [sx, sy], target: [tx, ty] });
-  }
-});
+// --- Strings ---
+// Everything user-facing, per language. Node entries add label (process
+// steps only) and desc to the nodes above; file paths stay untranslated.
+const STRINGS = {
+  en: {
+    title: 'Build Pipeline \u2014 vmargato.com',
+    instructions: 'Hover for details \u00b7 Click a processing step to see transformations',
+    center: 'Center',
+    before: 'Before',
+    after: 'After',
+    columns: ['SOURCES', 'PROCESSING', 'OUTPUTS'],
+    nodes: {
+      'src-posts':     { desc: 'Markdown blog posts organized by language (en/, pt/). Each has YAML frontmatter and a markdown body.' },
+      'src-pages':     { desc: 'Standalone pages like About. Same format as posts but not listed on the homepage.' },
+      'src-templates': { desc: 'Four HTML templates: base.html (shell), post.html, page.html, index.html. Simple mustache-like syntax.' },
+      'src-static':    { desc: 'CSS (Tufte + custom), JavaScript, fonts, and interactive embeds like this one. Copied as-is to output.' },
+      'proc-frontmatter': { label: 'Parse Frontmatter',
+        desc: 'Extract metadata (title, date, excerpt, draft) from the YAML-like block between --- delimiters.' },
+      'proc-markdown':    { label: 'Markdown \u2192 HTML',
+        desc: 'Convert markdown syntax to HTML. Headers, bold, links, lists, code blocks become HTML elements.' },
+      'proc-tufte':       { label: 'Tufte Extensions',
+        desc: 'Transform custom syntax: {mn}\u2192margin notes, {sn}\u2192numbered sidenotes, {nt}\u2192small-caps new thoughts.' },
+      'proc-toc':         { label: 'Table of Contents',
+        desc: 'Scan HTML for h2/h3 headings. If 3 or more found, generate a sidebar navigation with anchor links.' },
+      'proc-template':    { label: 'Render Templates',
+        desc: 'Fill template placeholders with values. Post template (title, date, body), then base template (header, nav, language switcher).' },
+      'proc-listings':    { label: 'Index & Feeds',
+        desc: 'Collect all post metadata, filter out drafts, sort by date. Generate the homepage listing and Atom XML feed.' },
+      'out-posts':  { desc: 'Rendered blog post pages, one per post per language.' },
+      'out-index':  { desc: 'Homepage with about section and chronological post listing (drafts excluded).' },
+      'out-feed':   { desc: 'Atom syndication feed for RSS readers.' },
+      'out-static': { desc: 'Static assets copied unchanged to the output directory.' },
+    },
+  },
+  pt: {
+    title: 'Pipeline de Build \u2014 vmargato.com',
+    instructions: 'Passe o mouse para detalhes \u00b7 Clique em uma etapa para ver as transforma\u00e7\u00f5es',
+    center: 'Centralizar',
+    before: 'Antes',
+    after: 'Depois',
+    columns: ['FONTES', 'PROCESSAMENTO', 'SA\u00cdDAS'],
+    nodes: {
+      'src-posts':     { desc: 'Posts em Markdown organizados por idioma (en/, pt/). Cada um tem frontmatter YAML e corpo em markdown.' },
+      'src-pages':     { desc: 'P\u00e1ginas avulsas como Sobre. Mesmo formato dos posts, mas n\u00e3o listadas na homepage.' },
+      'src-templates': { desc: 'Quatro templates HTML: base.html (shell), post.html, page.html, index.html. Sintaxe simples tipo mustache.' },
+      'src-static':    { desc: 'CSS (Tufte + customizado), JavaScript, fontes e embeds interativos como este. Copiados para o output sem altera\u00e7\u00e3o.' },
+      'proc-frontmatter': { label: 'Parse Frontmatter',
+        desc: 'Extrair metadados (t\u00edtulo, data, resumo, rascunho) do bloco YAML entre delimitadores ---.' },
+      'proc-markdown':    { label: 'Markdown \u2192 HTML',
+        desc: 'Converter sintaxe markdown para HTML. T\u00edtulos, negrito, links, listas, blocos de c\u00f3digo viram elementos HTML.' },
+      'proc-tufte':       { label: 'Extens\u00f5es Tufte',
+        desc: 'Transformar sintaxe customizada: {mn}\u2192margin notes, {sn}\u2192sidenotes numeradas, {nt}\u2192versaletes.' },
+      'proc-toc':         { label: '\u00cdndice',
+        desc: 'Escanear HTML buscando h2/h3. Se 3 ou mais forem encontrados, gerar navega\u00e7\u00e3o lateral com links \u00e2ncora.' },
+      'proc-template':    { label: 'Renderizar Templates',
+        desc: 'Preencher placeholders dos templates com valores. Template do post (t\u00edtulo, data, corpo), depois template base (header, nav, seletor de idioma).' },
+      'proc-listings':    { label: '\u00cdndice & Feeds',
+        desc: 'Coletar metadados de todos os posts, filtrar rascunhos, ordenar por data. Gerar listagem da homepage e feed Atom XML.' },
+      'out-posts':  { desc: 'P\u00e1ginas de posts renderizadas, uma por post por idioma.' },
+      'out-index':  { desc: 'Homepage com se\u00e7\u00e3o sobre e listagem cronol\u00f3gica de posts (rascunhos exclu\u00eddos).' },
+      'out-feed':   { desc: 'Feed Atom para leitores RSS.' },
+      'out-static': { desc: 'Assets est\u00e1ticos copiados sem altera\u00e7\u00e3o para o diret\u00f3rio de output.' },
+    },
+  },
+};
 
 // Detail panel data for each processing step
-const detailData = {
+STRINGS.en.details = {
   'proc-frontmatter': {
     title: 'Parse Frontmatter',
     before: `---
@@ -501,6 +522,195 @@ breaking my reading flow?</span>`,
   }
 };
 
+STRINGS.pt.details = {
+  'proc-frontmatter': {
+    title: 'Parse Frontmatter',
+    before: `---
+title: "Como este site funciona"
+date: 2026-03-03
+excerpt: Um \u00fanico script Python...
+draft: true
+---
+
+## Um script
+
+Este site inteiro \u00e9 gerado...`,
+    after: `metadata = {
+  title: "Como este site funciona",
+  date: "2026-03-03",
+  excerpt: "Um \u00fanico script...",
+  draft: true
+}
+
+body = "## Um script\\n\\n..."`,
+    explain: 'Divide no delimitador ---. Tudo entre eles vira metadados (pares chave: valor). Tudo depois vira o corpo markdown para processamento.'
+  },
+  'proc-markdown': {
+    title: 'Markdown \u2192 HTML',
+    before: `## Um script
+
+Este site inteiro \u00e9 gerado por
+um \u00fanico script Python. Cerca de
+1.300 linhas. Uma depend\u00eancia
+de runtime (\`markdown\`).`,
+    after: `<h2>Um script</h2>
+
+<p>Este site inteiro \u00e9 gerado por
+um \u00fanico script Python. Cerca de
+1.300 linhas. Uma depend\u00eancia
+de runtime (<code>markdown</code>
+).</p>`,
+    explain: 'T\u00edtulos, negrito, it\u00e1lico, links, listas, blocos de c\u00f3digo e tabelas s\u00e3o convertidos para os elementos HTML correspondentes.'
+  },
+  'proc-tufte': {
+    title: 'Extens\u00f5es Tufte',
+    before: `Margin notes aparecem no campo
+visual.{mn}Notas de rodap\u00e9
+for\u00e7am uma decis\u00e3o: vale a pena
+interromper a leitura?{/mn}`,
+    after: `Margin notes aparecem no campo
+visual.
+<label for="mn-1"
+  class="margin-toggle">\u2295</label>
+<input type="checkbox" id="mn-1"
+  class="margin-toggle"/>
+<span class="marginnote">Notas de
+rodap\u00e9 for\u00e7am uma decis\u00e3o: vale
+a pena interromper a
+leitura?</span>`,
+    explain: '{mn}\u2026{/mn} vira margin notes vis\u00edveis na lateral. {sn}\u2026{/sn} vira sidenotes numeradas. {nt}\u2026{/nt} vira versaletes (new thought).'
+  },
+  'proc-toc': {
+    title: '\u00cdndice',
+    before: `<h2>Um script</h2>
+...
+<h2>Markdown entra, HTML sai</h2>
+...
+<h2>Extens\u00f5es Tufte</h2>
+...
+<h2>O motor de templates</h2>`,
+    after: `<nav class="toc">
+ <ul class="toc-list">
+  <li class="toc-h2">
+   <a href="#um-script">
+    Um script</a></li>
+  <li class="toc-h2">
+   <a href="#markdown-entra...">
+    Markdown entra, HTML sai</a></li>
+  <li class="toc-h2">
+   <a href="#extensoes-tufte">
+    Extens\u00f5es Tufte</a></li>
+ </ul>
+</nav>`,
+    explain: 'Extrai headings h2 e h3 do HTML. Se 3 ou mais forem encontrados, gera uma barra lateral fixa com links \u00e2ncora. Os headings recebem atributos id para navega\u00e7\u00e3o.'
+  },
+  'proc-template': {
+    title: 'Renderizar Templates',
+    before: `<!-- post.html -->
+<h1>{{title}}</h1>
+<p class="subtitle">
+  {{published_date}}</p>
+{{content}}
+
+<!-- base.html -->
+<a class="site-title">
+  {{site_title}}</a>
+{{#has_alternate}}
+  <a href="{{other_lang_url}}">
+{{/has_alternate}}`,
+    after: `<h1>Como este site funciona</h1>
+<p class="subtitle">
+  3 de mar\u00e7o de 2026</p>
+<section>
+  <h2>Um script</h2>
+  <p>Este site inteiro \u00e9...</p>
+</section>
+
+<a class="site-title">
+  Vitor Margato</a>
+<a href="/en/posts/...">`,
+    explain: 'Substitui {{placeholders}} por valores. Cada p\u00e1gina passa pelo template de conte\u00fado primeiro, depois \u00e9 envolvida pelo template base com header, navega\u00e7\u00e3o e seletor de idioma.'
+  },
+  'proc-listings': {
+    title: '\u00cdndice & Feeds',
+    before: `Metadados de todos os posts:
+[
+ { title: "EM e PM...",
+   date: "2026-02-27",
+   draft: false },
+ { title: "Como este site...",
+   date: "2026-03-03",
+   draft: true },
+ { title: "IA vai borrar...",
+   date: "2026-02-26",
+   draft: false }
+]`,
+    after: `<!-- index.html (rascunhos ocultos) -->
+<div class="post-item">
+ <h2>EM e PM: quem puxa
+  o qu\u00ea</h2>
+ <span>27 de fevereiro de 2026</span>
+</div>
+<div class="post-item">
+ <h2>IA vai borrar pap\u00e9is
+  adjacentes</h2>
+ <span>26 de fevereiro de 2026</span>
+</div>
+
+<!-- feed.xml -->
+<entry>
+ <title>EM e PM...</title>
+ <updated>2026-02-27</updated>
+</entry>`,
+    explain: 'Coleta metadados de todos os posts. Filtra rascunhos (ainda constru\u00eddos, mas ocultos), ordena por data (mais recente primeiro) e gera a listagem da homepage e o feed Atom XML.'
+  }
+};
+
+const T = STRINGS[LANG];
+document.title = T.title;
+document.getElementById('instructions').textContent = T.instructions;
+document.getElementById('center-btn').textContent = T.center;
+nodes.forEach(n => Object.assign(n, T.nodes[n.id]));
+document.getElementById('label-before').textContent = T.before;
+document.getElementById('label-after').textContent = T.after;
+const detailData = T.details;
+
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+const edges = [
+  { source: 'src-posts',        target: 'proc-frontmatter', type: 'horizontal' },
+  { source: 'src-pages',        target: 'proc-frontmatter', type: 'horizontal' },
+  { source: 'src-templates',    target: 'proc-template',    type: 'horizontal' },
+  { source: 'proc-frontmatter', target: 'proc-markdown',    type: 'vertical' },
+  { source: 'proc-markdown',    target: 'proc-tufte',       type: 'vertical' },
+  { source: 'proc-tufte',       target: 'proc-toc',         type: 'vertical' },
+  { source: 'proc-toc',         target: 'proc-template',    type: 'vertical' },
+  { source: 'proc-frontmatter', target: 'proc-listings',    type: 'branch' },
+  { source: 'proc-template',    target: 'out-posts',        type: 'horizontal' },
+  { source: 'proc-listings',    target: 'out-index',        type: 'horizontal' },
+  { source: 'proc-listings',    target: 'out-feed',         type: 'horizontal' },
+  { source: 'src-static',       target: 'out-static',       type: 'copy' },
+];
+
+// Compute SVG paths for edges
+edges.forEach(e => {
+  const s = nodeMap[e.source], t = nodeMap[e.target];
+  if (e.type === 'vertical') {
+    e.path = `M ${s.x},${s.y + NH/2} L ${t.x},${t.y - NH/2}`;
+  } else if (e.type === 'branch') {
+    const sx = s.x + NW/2, sy = s.y;
+    const tx = t.x + NW/2, ty = t.y;
+    e.path = `M ${sx},${sy} C ${sx + 70},${sy} ${tx + 70},${ty} ${tx},${ty}`;
+  } else {
+    // horizontal and copy
+    const sx = s.x + NW/2, sy = s.y;
+    const tx = t.x - NW/2, ty = t.y;
+    e.path = d3.linkHorizontal()({ source: [sx, sy], target: [tx, ty] });
+  }
+});
+
+
 // --- SVG setup ---
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -520,9 +730,9 @@ svg.call(zoom);
 
 // --- Column headers ---
 const headers = [
-  { label: 'SOURCES', x: 115, y: 40 },
-  { label: 'PROCESSING', x: 450, y: 40 },
-  { label: 'OUTPUTS', x: 810, y: 40 },
+  { label: T.columns[0], x: 115, y: 40 },
+  { label: T.columns[1], x: 450, y: 40 },
+  { label: T.columns[2], x: 810, y: 40 },
 ];
 
 g.selectAll(".col-header")

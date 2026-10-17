@@ -9,16 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="/static/js/theme.js"></script>
 <script>
-// Embed mode: hide chrome, listen for theme sync from parent
-const isEmbed = new URLSearchParams(window.location.search).has('embed');
+// ?embed hides standalone chrome; ?lang=pt|en picks the strings (default en).
+const params = new URLSearchParams(window.location.search);
+const isEmbed = params.has('embed');
+const LANG = params.get('lang') === 'pt' ? 'pt' : 'en';
+document.documentElement.lang = LANG;
 if (isEmbed) {
   document.documentElement.classList.add('embed');
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'theme-change') {
-      document.documentElement.setAttribute('data-theme', e.data.theme);
-    }
-  });
 }
+// Theme sync: when the parent page (same origin) toggles the theme, theme.js
+// writes localStorage, which fires a storage event in this frame.
+window.addEventListener('storage', function(e) {
+  if (e.key === 'theme-preference' && e.newValue) {
+    document.documentElement.setAttribute('data-theme', e.newValue);
+  }
+});
 </script>
 <style>
   :root {
@@ -167,52 +172,67 @@ if (isEmbed) {
 
 <div class="tooltip" id="tooltip"></div>
 
-<div class="instructions">
-  Drag nodes · Scroll to zoom · Hover for details
-</div>
+<div class="instructions" id="instructions"></div>
 
-<button class="center-btn" onclick="centerGraph()">Center</button>
+<button class="center-btn" id="center-btn" onclick="centerGraph()"></button>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 const nodes = [
-  {
-    id: "PM", label: "Product Manager",
-    desc: "Decides which problems to solve, prioritizes the roadmap, and ensures the product delivers for customers and the business."
-  },
-  {
-    id: "PD", label: "Product Designer",
-    desc: "Defines how the product looks and behaves for users, balancing usability, aesthetics, and technical feasibility."
-  },
-  {
-    id: "FE", label: "SW Engineer (Front End)",
-    desc: "Develops and maintains the code that runs on the client side, shaping how the product looks and responds to use."
-  },
-  {
-    id: "BE", label: "SW Engineer (Back End)",
-    desc: "Develops and maintains the code that runs on the server side, including services, APIs, business logic, and data access."
-  },
-  {
-    id: "EM", label: "Engineering Manager",
-    desc: "Makes technical decisions, leads engineering people, and manages the delivery process, ensuring quality and velocity."
-  },
-  {
-    id: "DP", label: "Data Platform Engineer",
-    desc: "Builds and operates the platform that enables the organization to collect, store, and process data at scale."
-  },
-  {
-    id: "AE", label: "Analytics Engineer",
-    desc: "Models and transforms the organization's data so that it is reliable, well-documented, and ready for consumption."
-  },
-  {
-    id: "DS", label: "Data Scientist",
-    desc: "Develops statistical and machine learning models that turn data into predictions and recommendations."
-  },
-  {
-    id: "BA", label: "Business Analyst",
-    desc: "Analyzes business data and processes to identify opportunities, support decisions, and track results."
-  }
+  { id: "PM", label: "Product Manager" },
+  { id: "PD", label: "Product Designer" },
+  { id: "FE", label: "SW Engineer (Front End)" },
+  { id: "BE", label: "SW Engineer (Back End)" },
+  { id: "EM", label: "Engineering Manager" },
+  { id: "DP", label: "Data Platform Engineer" },
+  { id: "AE", label: "Analytics Engineer" },
+  { id: "DS", label: "Data Scientist" },
+  { id: "BA", label: "Business Analyst" }
 ];
+
+// --- Strings ---
+// Everything user-facing, per language. Node entries add desc to the nodes
+// above; the role labels are in English in both versions.
+const STRINGS = {
+  en: {
+    title: "Professions Adjacency Graph",
+    instructions: "Drag nodes \u00b7 Scroll to zoom \u00b7 Hover for details",
+    center: "Center",
+    nodes: {
+      PM: { desc: "Decides which problems to solve, prioritizes the roadmap, and ensures the product delivers for customers and the business." },
+      PD: { desc: "Defines how the product looks and behaves for users, balancing usability, aesthetics, and technical feasibility." },
+      FE: { desc: "Develops and maintains the code that runs on the client side, shaping how the product looks and responds to use." },
+      BE: { desc: "Develops and maintains the code that runs on the server side, including services, APIs, business logic, and data access." },
+      EM: { desc: "Makes technical decisions, leads engineering people, and manages the delivery process, ensuring quality and velocity." },
+      DP: { desc: "Builds and operates the platform that enables the organization to collect, store, and process data at scale." },
+      AE: { desc: "Models and transforms the organization's data so that it is reliable, well-documented, and ready for consumption." },
+      DS: { desc: "Develops statistical and machine learning models that turn data into predictions and recommendations." },
+      BA: { desc: "Analyzes business data and processes to identify opportunities, support decisions, and track results." },
+    },
+  },
+  pt: {
+    title: "Grafo de Adjac\u00eancia de Profiss\u00f5es",
+    instructions: "Arraste os n\u00f3s \u00b7 Scroll para zoom \u00b7 Passe o mouse para ver detalhes",
+    center: "Centralizar",
+    nodes: {
+      PM: { desc: "Define quais problemas resolver, prioriza o roadmap e garante que o produto entregue resultados para o cliente e para a empresa." },
+      PD: { desc: "Define como o produto se apresenta e se comporta para o usuário, equilibrando usabilidade, estética e viabilidade técnica." },
+      FE: { desc: "Desenvolve e mantém o código que roda no lado do cliente, determinando como o produto se apresenta e responde ao uso." },
+      BE: { desc: "Desenvolve e mantém o código que roda no lado do servidor, incluindo serviços, APIs, regras de negócio e acesso a dados." },
+      EM: { desc: "Toma decisões técnicas, lidera pessoas de engenharia e gere o processo de entrega, assegurando qualidade e velocidade." },
+      DP: { desc: "Constrói e opera a plataforma que permite à organização coletar, armazenar e processar dados em escala." },
+      AE: { desc: "Modela e transforma os dados da organização para que sejam confiáveis, bem documentados e prontos para consumo." },
+      DS: { desc: "Desenvolve modelos estatísticos e de machine learning que transformam dados em previsões e recomendações." },
+      BA: { desc: "Analisa dados e processos do negócio para identificar oportunidades, embasar decisões e acompanhar resultados." },
+    },
+  },
+};
+
+const T = STRINGS[LANG];
+document.title = T.title;
+document.getElementById('instructions').textContent = T.instructions;
+document.getElementById('center-btn').textContent = T.center;
+nodes.forEach(n => Object.assign(n, T.nodes[n.id]));
 
 const links = [
   { source: "PM", target: "PD" },

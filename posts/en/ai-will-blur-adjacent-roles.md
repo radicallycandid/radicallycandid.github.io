@@ -31,21 +31,8 @@ Consider the different roles that exist in a modern product development organiza
 The graph below shows common roles and what I consider their most relevant adjacencies. It's intentionally simple and not exhaustive, prioritizing usefulness for the argument that follows.{sn}For instance, the graph doesn't include Site Reliability Engineer (SRE), which would be a node connected to SW Engineer (Back End), or the emerging and increasingly relevant role of AI Engineer, which could connect to both Data Scientist and SW Engineer (Back End).{/sn} The inclusion of several data-related roles (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) reflects both my personal background and the fact that the conversation with a friend that inspired this post started by questioning how these roles are divided today.
 
 <div class="graph-embed">
-  <iframe src="/static/embeds/professions-graph-en.html?embed" title="Professions adjacency graph"></iframe>
+  <iframe src="/static/embeds/professions-graph.html?embed&amp;lang=en" title="Professions adjacency graph"></iframe>
 </div>
-<script>
-// Sync theme changes with embedded graph
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 My argument is simple: AI will gradually blur the boundaries between adjacent roles in this graph, without eliminating the roles themselves.{sn}AI also compresses the depth required within each specialty, not just the barriers between them. But this compression is asymmetric: agents automate execution far more than they replace judgment. The real difference between roles lives in the judgment of knowing what (not) to build and what's wrong even when it looks right.{/sn} The blurring will happen along the edges, not everywhere at once. A Product Designer will find it easier to take on Front-End Engineering work. An Analytics Engineer will absorb some of what Business Analysts do today, or vice versa. What I don't foresee is the rise of professionals who simultaneously perform a large collection of distant roles in this graph.
 

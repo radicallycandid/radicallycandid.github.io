@@ -38,7 +38,7 @@ build.py                    The entire build system
 - Frontmatter is YAML-like between `---` fences. Required fields: `title`, `date` (YYYY-MM-DD), `excerpt`. Optional: `draft: true` (accessible by direct URL but hidden from index and feed).
 - Tufte extensions in markdown: `{mn}margin note{/mn}`, `{sn}sidenote{/sn}`, `{nt}new thought{/nt}`.
 - Raw HTML in markdown passes through untouched. Interactive embeds use `<div class="graph-embed">` with an iframe pointing to `static/embeds/`.
-- Embed iframes use `?embed` query param to hide standalone chrome (theme toggle, instructions). Theme sync from parent page via `postMessage`.
+- Each embed is one file for both languages: `?lang=pt|en` (default `en`) picks strings from its `STRINGS` dictionary, and `?embed` hides standalone chrome (theme toggle, instructions). Iframes use `?embed&amp;lang=en` or `?embed&amp;lang=pt`. Theme sync is a `storage` listener on `theme-preference`: the parent's theme.js writes localStorage, which fires the event in same-origin iframes.
 
 ## Writing style
 

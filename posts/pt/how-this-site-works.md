@@ -16,20 +16,8 @@ O conceito é o mesmo do Hugo, Jekyll ou Eleventy: pegar arquivos de texto, inte
 O diagrama abaixo mostra como os arquivos fonte se conectam através do `build.py` até a saída final. Passe o mouse sobre qualquer nó para rastrear suas conexões.
 
 <div class="graph-embed" style="height: 650px;">
-  <iframe src="/static/embeds/repo-architecture-pt.html?embed" title="Visualização da arquitetura do repositório"></iframe>
+  <iframe src="/static/embeds/repo-architecture.html?embed&amp;lang=pt" title="Visualização da arquitetura do repositório"></iframe>
 </div>
-<script>
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe[src*="repo-architecture"]');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 O conteúdo é escrito em `posts/` e `pages/`, dividido por idioma nos subdiretórios `en/` e `pt/`. Os templates definem a estrutura HTML. Os assets estáticos (CSS, JavaScript, fontes, embeds interativos) passam sem alteração. O diretório `output/` é efêmero e está no gitignore.
 
@@ -40,20 +28,8 @@ Para cada idioma, o `build.py` executa uma sequência de transformações em cad
 O diagrama abaixo mostra essas etapas de processamento em detalhe. Clique em qualquer etapa para ver uma transformação concreta de antes e depois.
 
 <div class="graph-embed" style="height: 650px;">
-  <iframe src="/static/embeds/build-pipeline-pt.html?embed" title="Visualização do pipeline de build"></iframe>
+  <iframe src="/static/embeds/build-pipeline.html?embed&amp;lang=pt" title="Visualização do pipeline de build"></iframe>
 </div>
-<script>
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe[src*="build-pipeline"]');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 ## Conteúdo e frontmatter
 
