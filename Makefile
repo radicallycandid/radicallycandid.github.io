@@ -20,27 +20,28 @@ clean:
 
 ## Install dependencies
 install:
-	pip install -r requirements.txt
+	uv sync
 
 ## Install with dev dependencies
 install-dev:
-	pip install -e ".[dev]"
+	uv sync --extra dev
 
 ## Run tests
 test:
-	pytest
+	uv run pytest
 
 ## Run tests with coverage report
 coverage:
-	pytest --cov=build --cov-report=term-missing
+	uv run pytest --cov=build --cov-report=term-missing
 
-## Run linter (requires ruff)
+## Run linter and format check
 lint:
-	ruff check build.py
+	uv run ruff check .
+	uv run ruff format --check .
 
-## Run type checker (requires mypy)
+## Run type checker (strict)
 typecheck:
-	mypy build.py
+	uv run mypy build.py tests
 
 ## Show this help message
 help:

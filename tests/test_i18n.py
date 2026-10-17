@@ -1,9 +1,8 @@
 """Tests for internationalization functions."""
 
-import pytest
 from pathlib import Path
 
-from build import format_date, get_other_lang, find_content_pairs
+from build import find_content_pairs, format_date, get_other_lang
 
 
 class TestFormatDate:

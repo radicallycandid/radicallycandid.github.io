@@ -1,8 +1,6 @@
 """Tests for utility functions."""
 
-import pytest
-
-from build import extract_headings, add_heading_ids, generate_toc_html
+from build import add_heading_ids, extract_headings, generate_toc_html
 
 
 class TestExtractHeadings:
@@ -89,7 +87,9 @@ class TestAddHeadingIds:
     def test_add_id_to_heading_without_id(self) -> None:
         """Add ID to heading that doesn't have one."""
         html = "<h2>My Section</h2>"
-        headings = [{"level": 2, "id": "my-section", "text": "My Section"}]
+        headings: list[dict[str, str | int]] = [
+            {"level": 2, "id": "my-section", "text": "My Section"}
+        ]
 
         result = add_heading_ids(html, headings)
 
@@ -98,7 +98,9 @@ class TestAddHeadingIds:
     def test_preserve_existing_id(self) -> None:
         """Don't modify headings that already have IDs."""
         html = '<h2 id="existing">My Section</h2>'
-        headings = [{"level": 2, "id": "existing", "text": "My Section"}]
+        headings: list[dict[str, str | int]] = [
+            {"level": 2, "id": "existing", "text": "My Section"}
+        ]
 
         result = add_heading_ids(html, headings)
 
@@ -111,7 +113,7 @@ class TestGenerateTocHtml:
 
     def test_generate_toc_with_headings(self) -> None:
         """Generate ToC HTML from headings."""
-        headings = [
+        headings: list[dict[str, str | int]] = [
             {"level": 2, "id": "section-one", "text": "Section One"},
             {"level": 3, "id": "subsection", "text": "Subsection"},
             {"level": 2, "id": "section-two", "text": "Section Two"},
@@ -134,7 +136,7 @@ class TestGenerateTocHtml:
 
     def test_toc_has_aria_label(self) -> None:
         """ToC has accessibility label."""
-        headings = [{"level": 2, "id": "test", "text": "Test"}]
+        headings: list[dict[str, str | int]] = [{"level": 2, "id": "test", "text": "Test"}]
         result = generate_toc_html(headings)
 
         assert 'aria-label="Table of contents"' in result

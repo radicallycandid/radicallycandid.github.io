@@ -1,13 +1,13 @@
 """Integration tests for the build pipeline."""
 
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 import build
-from build import build_post, build_page
-
+from build import build_page, build_post
 
 # Minimal templates that exercise the rendering pipeline
 BASE_HTML = """<!DOCTYPE html>
@@ -36,7 +36,7 @@ INDEX_HTML = """<section>
 
 
 @pytest.fixture
-def build_env(tmp_path: Path) -> Path:
+def build_env(tmp_path: Path) -> Iterator[Path]:
     """Set up minimal templates and output dir for build functions."""
     templates = tmp_path / "templates"
     templates.mkdir()
@@ -77,14 +77,20 @@ class TestBuildPost:
 
     def test_creates_html_file(self, build_env: Path) -> None:
         """build_post writes an HTML file containing the post title."""
-        md = _write_md(build_env, "en", "posts", "hello", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "posts",
+            "hello",
+            """---
 title: Hello World
 date: 2026-01-15
 excerpt: A greeting.
 ---
 
 Some content here.
-""")
+""",
+        )
         meta = build_post(md, "en")
         output = build.OUTPUT_DIR / "en" / "posts" / "hello.html"
         assert output.exists()
@@ -94,7 +100,12 @@ Some content here.
 
     def test_draft_flag(self, build_env: Path) -> None:
         """Posts with draft: true return draft=True in metadata."""
-        md = _write_md(build_env, "en", "posts", "draft-post", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "posts",
+            "draft-post",
+            """---
 title: Draft Post
 date: 2026-02-01
 excerpt: Not ready yet.
@@ -102,32 +113,45 @@ draft: true
 ---
 
 Draft content.
-""")
+""",
+        )
         meta = build_post(md, "en")
         assert meta["draft"] is True
 
     def test_collects_warnings(self, build_env: Path) -> None:
         """Posts missing excerpt populate the warnings list."""
-        md = _write_md(build_env, "en", "posts", "no-excerpt", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "posts",
+            "no-excerpt",
+            """---
 title: No Excerpt Post
 date: 2026-02-01
 ---
 
 Content without excerpt.
-""")
+""",
+        )
         warnings: list[str] = []
         build_post(md, "en", warnings=warnings)
         assert any("excerpt" in w for w in warnings)
 
     def test_date_fallback_to_mtime(self, build_env: Path) -> None:
         """Posts without a date field fall back to file mtime."""
-        md = _write_md(build_env, "en", "posts", "no-date", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "posts",
+            "no-date",
+            """---
 title: No Date Post
 excerpt: Testing mtime fallback.
 ---
 
 Content.
-""")
+""",
+        )
         warnings: list[str] = []
         meta = build_post(md, "en", warnings=warnings)
         # published_date should be set (not empty)
@@ -139,12 +163,18 @@ class TestBuildPage:
 
     def test_creates_html_file(self, build_env: Path) -> None:
         """build_page writes an HTML file at output/{lang}/slug.html."""
-        md = _write_md(build_env, "en", "pages", "about", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "pages",
+            "about",
+            """---
 title: About Me
 ---
 
 I am a person.
-""")
+""",
+        )
         build_page(md, "en")
         output = build.OUTPUT_DIR / "en" / "about.html"
         assert output.exists()
@@ -153,25 +183,37 @@ I am a person.
 
     def test_collects_warnings(self, build_env: Path) -> None:
         """Pages missing excerpt populate the warnings list."""
-        md = _write_md(build_env, "en", "pages", "no-excerpt-page", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "pages",
+            "no-excerpt-page",
+            """---
 title: No Excerpt
 ---
 
 Content without excerpt.
-""")
+""",
+        )
         warnings: list[str] = []
         build_page(md, "en", warnings=warnings)
         assert any("excerpt" in w for w in warnings)
 
     def test_page_uses_website_og_type(self, build_env: Path) -> None:
         """Pages use 'website' og_type (not 'article')."""
-        md = _write_md(build_env, "en", "pages", "contact", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "pages",
+            "contact",
+            """---
 title: Contact
 description: Get in touch.
 ---
 
 Email me.
-""")
+""",
+        )
         build_page(md, "en")
         output = build.OUTPUT_DIR / "en" / "contact.html"
         assert output.exists()
@@ -183,7 +225,7 @@ class TestBuildIndex:
 
     def test_creates_index_file(self, build_env: Path) -> None:
         """build_index writes output/{lang}/index.html."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": "Post One",
                 "published_date": "2026-01-15",
@@ -200,7 +242,7 @@ class TestBuildIndex:
 
     def test_index_sorts_by_date_descending(self, build_env: Path) -> None:
         """Posts appear newest-first on the index."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": "Older",
                 "published_date": "2026-01-01",
@@ -246,7 +288,7 @@ class TestBuildFeed:
 
     def test_creates_feed_file(self, build_env: Path) -> None:
         """build_feed writes output/{lang}/feed.xml."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": "Feed Post",
                 "published_date": "2026-01-15",
@@ -263,7 +305,7 @@ class TestBuildFeed:
 
     def test_feed_is_valid_xml_structure(self, build_env: Path) -> None:
         """Feed has proper Atom structure."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": "Test",
                 "published_date": "2026-01-01",
@@ -281,7 +323,7 @@ class TestBuildFeed:
 
     def test_feed_limits_to_20_entries(self, build_env: Path) -> None:
         """Feed includes at most 20 posts."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": f"Post {i}",
                 "published_date": f"2026-01-{i:02d}",
@@ -320,7 +362,7 @@ class TestBuildRootIndex:
 
     def test_root_serves_pt_homepage_with_en_redirect(self, build_env: Path) -> None:
         """build_root_index writes the PT homepage at output/index.html."""
-        posts = [
+        posts: list[dict[str, object]] = [
             {
                 "title": "Post raiz",
                 "url": "posts/post-raiz.html",
@@ -354,13 +396,19 @@ class TestRenderContentUrls:
 
     def test_post_url_includes_posts_prefix(self, build_env: Path) -> None:
         """Posts generate URLs with posts/ prefix."""
-        md = _write_md(build_env, "en", "posts", "test-urls", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "posts",
+            "test-urls",
+            """---
 title: URL Test
 date: 2026-01-15
 excerpt: Testing URLs.
 ---
 
-Content.""")
+Content.""",
+        )
         build_post(md, "en", has_alternate=True)
         output = build.OUTPUT_DIR / "en" / "posts" / "test-urls.html"
         html = output.read_text()
@@ -368,12 +416,18 @@ Content.""")
 
     def test_page_url_no_posts_prefix(self, build_env: Path) -> None:
         """Pages generate URLs without posts/ prefix."""
-        md = _write_md(build_env, "en", "pages", "test-page-urls", """---
+        md = _write_md(
+            build_env,
+            "en",
+            "pages",
+            "test-page-urls",
+            """---
 title: Page URL Test
 description: Testing page URLs.
 ---
 
-Content.""")
+Content.""",
+        )
         build_page(md, "en", has_alternate=True)
         output = build.OUTPUT_DIR / "en" / "test-page-urls.html"
         html = output.read_text()
@@ -386,30 +440,54 @@ class TestBuild:
 
     def test_full_build_succeeds(self, build_env: Path) -> None:
         """Full build with minimal content returns True."""
-        _write_md(build_env, "en", "posts", "hello", """---
+        _write_md(
+            build_env,
+            "en",
+            "posts",
+            "hello",
+            """---
 title: Hello
 date: 2026-01-15
 excerpt: World.
 ---
 
-Content.""")
-        _write_md(build_env, "pt", "posts", "hello", """---
+Content.""",
+        )
+        _write_md(
+            build_env,
+            "pt",
+            "posts",
+            "hello",
+            """---
 title: Ola
 date: 2026-01-15
 excerpt: Mundo.
 ---
 
-Conteudo.""")
-        _write_md(build_env, "en", "pages", "about", """---
+Conteudo.""",
+        )
+        _write_md(
+            build_env,
+            "en",
+            "pages",
+            "about",
+            """---
 title: About
 ---
 
-About me.""")
-        _write_md(build_env, "pt", "pages", "about", """---
+About me.""",
+        )
+        _write_md(
+            build_env,
+            "pt",
+            "pages",
+            "about",
+            """---
 title: Sobre
 ---
 
-Sobre mim.""")
+Sobre mim.""",
+        )
 
         static_dir = build_env / "static"
         static_dir.mkdir()
@@ -456,17 +534,29 @@ Sobre mim.""")
     def test_strict_build_fails_on_warnings(self, build_env: Path) -> None:
         """A frontmatter warning only fails the build in strict mode."""
         for lang in ("en", "pt"):
-            _write_md(build_env, lang, "posts", "hello", """---
+            _write_md(
+                build_env,
+                lang,
+                "posts",
+                "hello",
+                """---
 title: Hello
 date: 2026-01-15
 ---
 
-No excerpt.""")
-            _write_md(build_env, lang, "pages", "about", """---
+No excerpt.""",
+            )
+            _write_md(
+                build_env,
+                lang,
+                "pages",
+                "about",
+                """---
 title: About
 ---
 
-About me.""")
+About me.""",
+            )
 
         original_posts = build.POSTS_DIR
         original_pages = build.PAGES_DIR
@@ -517,9 +607,7 @@ class TestMain:
         assert exc.value.code == code
         assert calls == ["--strict" in argv]
 
-    def test_serve_exits_nonzero_on_failed_build(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_serve_exits_nonzero_on_failed_build(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(build, "build", lambda strict=False: False)
         monkeypatch.setattr("sys.argv", ["build.py", "serve"])
         with pytest.raises(SystemExit) as exc:
