@@ -18,6 +18,7 @@ import http.server
 import re
 import shutil
 import socketserver
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -1193,9 +1194,12 @@ def _copy_cname() -> None:
         print("  Copied: CNAME")
 
 
-def build() -> bool:
+def build(strict: bool = False) -> bool:
     """
     Build the entire site in all configured languages.
+
+    Args:
+        strict: Treat frontmatter validation warnings as errors.
 
     Returns:
         True if build succeeded, False if there were errors.
@@ -1242,6 +1246,10 @@ def build() -> bool:
         print(f"Build completed with {len(errors)} error(s).")
         return False
 
+    if strict and warnings:
+        print(f"Build failed in strict mode with {len(warnings)} warning(s).")
+        return False
+
     print(
         f"Done! Built {total_posts} post(s) and {total_pages} page(s) "
         f"across {len(LANGUAGES)} language(s)."
@@ -1259,7 +1267,7 @@ def serve(port: int = DEFAULT_SERVER_PORT) -> None:
     """
     if not build():
         print("Server not started due to build errors.")
-        return
+        sys.exit(1)
 
     print()
     print(f"Starting server at http://localhost:{port}")
@@ -1291,6 +1299,8 @@ def main() -> None:
         epilog="""
 Examples:
     python build.py          Build the site
+    python build.py build --strict
+                             Build, failing on frontmatter warnings
     python build.py serve    Build and start local server
     python build.py clean    Remove output directory
         """,
@@ -1299,7 +1309,12 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Build command (default)
-    subparsers.add_parser("build", help="Build the site (default)")
+    build_parser = subparsers.add_parser("build", help="Build the site (default)")
+    build_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat frontmatter warnings as errors",
+    )
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Build and start local server")
@@ -1322,7 +1337,7 @@ Examples:
         clean()
     else:
         # Default to build
-        build()
+        sys.exit(0 if build(strict=getattr(args, "strict", False)) else 1)
 
 
 if __name__ == "__main__":

@@ -452,3 +452,76 @@ Sobre mim.""")
             assert result is False
         finally:
             build.TEMPLATES_DIR = original
+
+    def test_strict_build_fails_on_warnings(self, build_env: Path) -> None:
+        """A frontmatter warning only fails the build in strict mode."""
+        for lang in ("en", "pt"):
+            _write_md(build_env, lang, "posts", "hello", """---
+title: Hello
+date: 2026-01-15
+---
+
+No excerpt.""")
+            _write_md(build_env, lang, "pages", "about", """---
+title: About
+---
+
+About me.""")
+
+        original_posts = build.POSTS_DIR
+        original_pages = build.PAGES_DIR
+        original_static = build.STATIC_DIR
+        build.POSTS_DIR = build_env / "posts"
+        build.PAGES_DIR = build_env / "pages"
+        build.STATIC_DIR = build_env / "static"
+        (build_env / "static").mkdir()
+        try:
+            assert build.build() is True
+            assert build.build(strict=True) is False
+        finally:
+            build.POSTS_DIR = original_posts
+            build.PAGES_DIR = original_pages
+            build.STATIC_DIR = original_static
+
+
+class TestMain:
+    """Exit codes of the CLI entry point."""
+
+    @pytest.mark.parametrize(
+        ("argv", "result", "code"),
+        [
+            ([], True, 0),
+            ([], False, 1),
+            (["build"], True, 0),
+            (["build"], False, 1),
+            (["build", "--strict"], False, 1),
+        ],
+    )
+    def test_build_exit_code(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        argv: list[str],
+        result: bool,
+        code: int,
+    ) -> None:
+        calls: list[bool] = []
+
+        def fake_build(strict: bool = False) -> bool:
+            calls.append(strict)
+            return result
+
+        monkeypatch.setattr(build, "build", fake_build)
+        monkeypatch.setattr("sys.argv", ["build.py", *argv])
+        with pytest.raises(SystemExit) as exc:
+            build.main()
+        assert exc.value.code == code
+        assert calls == ["--strict" in argv]
+
+    def test_serve_exits_nonzero_on_failed_build(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(build, "build", lambda strict=False: False)
+        monkeypatch.setattr("sys.argv", ["build.py", "serve"])
+        with pytest.raises(SystemExit) as exc:
+            build.main()
+        assert exc.value.code == 1

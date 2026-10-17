@@ -36,7 +36,7 @@ jobs:
           pytest
 
       - name: Build site
-        run: python build.py build
+        run: python build.py build --strict
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
