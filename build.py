@@ -951,8 +951,8 @@ def _build_language(
     """
     Build all content for a single language.
 
-    Returns (post_count, page_count, public_posts) — the public (non-draft)
-    posts feed build_root_index after the per-language loop.
+    Returns (post_count, page_count, public_posts). The public (non-draft)
+    posts go to build_root_index after the per-language loop.
     """
     print(f"  [{lang.upper()}]")
 

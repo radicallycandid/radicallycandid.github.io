@@ -2,7 +2,7 @@
 
 ## Project
 
-vmargato.com — a personal blog built on a custom static site generator. No framework. No CMS. One Python script (`build.py`, ~1150 lines) that converts Markdown to HTML.
+vmargato.com, a personal blog built on a custom static site generator. No framework. No CMS. One Python script (`build.py`, ~1150 lines) that converts Markdown to HTML.
 
 Live at **vmargato.com**, deployed via GitHub Pages.
 

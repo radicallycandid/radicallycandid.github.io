@@ -381,7 +381,7 @@ class TestBuildRootIndex:
         assert 'http-equiv="refresh"' not in html
         # Post links gain the pt/ prefix so they resolve from /
         assert 'href="pt/posts/post-raiz.html"' in html
-        # Duplicate of /pt/ — canonical consolidates there
+        # Duplicate of /pt/, so the canonical consolidates there
         assert f'rel="canonical" href="{build.SITE_URL}/pt/"' in html
         assert f'hreflang="x-default" href="{build.SITE_URL}/"' in html
         # EN readers (saved choice or explicitly English browser) still redirect
