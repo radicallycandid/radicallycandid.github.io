@@ -65,7 +65,7 @@ build.py                    The entire build system
 - CSS theme: custom properties on `:root` (light) and `[data-theme="dark"]` (dark). `theme.js` handles toggle + localStorage persistence + system preference fallback.
 - Sticky header uses `::before` pseudo-element with `-100vw` left/right offsets for full-viewport background without breaking the Tufte layout width.
 - Table of contents appears as a fixed sidebar on screens >= 1440px. Uses IntersectionObserver for scroll tracking.
-- Embeds are self-contained HTML files in `static/embeds/`. Each has its own CSS variables, D3.js from CDN, and embed/standalone dual mode.
+- Embeds are self-contained HTML files in `static/embeds/`. Each has its own CSS variables, D3.js vendored at `static/vendor/d3-7.9.0.min.js`, fonts self-hosted via `static/css/embed-fonts.css`, and embed/standalone dual mode.
 - Template engine is simple string replacement: `{{variable}}`, `{{#key}}...{{/key}}` for conditionals/loops.
 
 ## Testing and quality
@@ -95,5 +95,4 @@ Filesystem paths use `Path` objects and are centralized at the top of `build.py`
 ### Frontend
 
 - No `og:image` meta tag. Social shares show title/description but no preview image.
-- D3.js loaded as `d3.v7.min.js` (major version only) in all 4 embed files.
 - SVG graphs in embeds have no ARIA labels or keyboard navigation.
