@@ -23,16 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
-# Use markdown library if available, otherwise fallback to basic conversion
-try:
-    import markdown
-
-    HAS_MARKDOWN = True
-except ImportError:
-    HAS_MARKDOWN = False
-    print("Warning: 'markdown' library not found. Install with: pip install markdown")
-    print("Using basic markdown conversion (limited features).")
-
+import markdown
 
 # =============================================================================
 # Exceptions
@@ -302,186 +293,6 @@ def convert_newthought(html: str) -> str:
 
 
 # =============================================================================
-# Basic Markdown Conversion (Fallback)
-# =============================================================================
-
-
-def basic_markdown_to_html(text: str) -> str:
-    """
-    Basic markdown conversion without external libraries.
-
-    Supports: headers, bold, italic, inline code, links, lists, tables,
-    code blocks, and paragraphs.
-
-    Args:
-        text: Markdown text to convert.
-
-    Returns:
-        HTML string.
-    """
-    # Extract and protect code blocks first (they may contain blank lines)
-    code_blocks: list[str] = []
-
-    def save_code_block(match: re.Match[str]) -> str:
-        code_blocks.append(match.group(2))
-        return f"__CODE_BLOCK_{len(code_blocks) - 1}__"
-
-    text = re.sub(r"```([^\n]*)\n(.*?)```", save_code_block, text, flags=re.DOTALL)
-
-    # Headers (process h3 before h2 before h1 to avoid conflicts)
-    text = re.sub(r"^### (.+)$", r"<h3>\1</h3>", text, flags=re.MULTILINE)
-    text = re.sub(r"^## (.+)$", r"<h2>\1</h2>", text, flags=re.MULTILINE)
-    text = re.sub(r"^# (.+)$", r"<h1>\1</h1>", text, flags=re.MULTILINE)
-
-    # Bold and italic (process *** before ** before * to handle combined correctly)
-    text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
-
-    # Inline code
-    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
-
-    # Links
-    text = re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', text)
-
-    # Process lists and tables
-    text = _convert_lists(text)
-    text = _convert_tables(text)
-
-    # Paragraphs - split on blank lines
-    text = _wrap_paragraphs(text)
-
-    # Restore code blocks
-    for i, code in enumerate(code_blocks):
-        text = text.replace(f"__CODE_BLOCK_{i}__", f"<pre><code>{code}</code></pre>")
-
-    return text
-
-
-def _convert_lists(text: str) -> str:
-    """Convert markdown lists (- item and 1. item) to HTML ul/ol."""
-    lines = text.split("\n")
-    result: list[str] = []
-    in_list = False
-    list_type: str | None = None
-    list_items: list[str] = []
-
-    ol_pattern = re.compile(r"^(\d+)\.\s+(.+)$")
-
-    for line in lines:
-        stripped = line.strip()
-        ol_match = ol_pattern.match(stripped)
-
-        if stripped.startswith("- "):
-            if in_list and list_type != "ul":
-                result.append(_render_list(list_type, list_items))
-                list_items = []
-            in_list = True
-            list_type = "ul"
-            list_items.append(stripped[2:])
-        elif ol_match:
-            if in_list and list_type != "ol":
-                result.append(_render_list(list_type, list_items))
-                list_items = []
-            in_list = True
-            list_type = "ol"
-            list_items.append(ol_match.group(2))
-        else:
-            if in_list:
-                result.append(_render_list(list_type, list_items))
-                list_items = []
-                in_list = False
-                list_type = None
-            result.append(line)
-
-    if in_list:
-        result.append(_render_list(list_type, list_items))
-
-    return "\n".join(result)
-
-
-def _render_list(list_type: str | None, items: list[str]) -> str:
-    """Render a list as HTML."""
-    if not list_type or not items:
-        return ""
-    li_items = "\n".join(f"<li>{item}</li>" for item in items)
-    return f"<{list_type}>\n{li_items}\n</{list_type}>"
-
-
-def _convert_tables(content: str) -> str:
-    """Convert markdown tables to HTML tables."""
-    lines = content.split("\n")
-    result: list[str] = []
-    in_table = False
-    table_rows: list[str] = []
-
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("|") and stripped.endswith("|"):
-            if not in_table:
-                in_table = True
-            table_rows.append(stripped)
-        else:
-            if in_table:
-                result.append(_render_table(table_rows))
-                table_rows = []
-                in_table = False
-            result.append(line)
-
-    if in_table:
-        result.append(_render_table(table_rows))
-
-    return "\n".join(result)
-
-
-def _render_table(rows: list[str]) -> str:
-    """Render table rows as HTML."""
-    if len(rows) < 2:
-        return "\n".join(rows)
-
-    html = ["<table>"]
-
-    # First row is header
-    header_cells = [cell.strip() for cell in rows[0].split("|")[1:-1]]
-    html.append("<thead><tr>")
-    for cell in header_cells:
-        html.append(f"<th>{cell}</th>")
-    html.append("</tr></thead>")
-
-    # Skip separator row, remaining rows are body
-    html.append("<tbody>")
-    for row in rows[2:]:
-        cells = [cell.strip() for cell in row.split("|")[1:-1]]
-        html.append("<tr>")
-        for cell in cells:
-            html.append(f"<td>{cell}</td>")
-        html.append("</tr>")
-    html.append("</tbody>")
-
-    html.append("</table>")
-    return "\n".join(html)
-
-
-def _wrap_paragraphs(text: str) -> str:
-    """Wrap non-block content in paragraph tags."""
-    paragraphs = text.split("\n\n")
-    processed: list[str] = []
-
-    block_prefixes = ("<h", "<pre", "<ul", "<ol", "<table", "__CODE_BLOCK_")
-
-    for p in paragraphs:
-        p = p.strip()
-        if not p:
-            continue
-        if any(p.startswith(prefix) for prefix in block_prefixes):
-            processed.append(p)
-        else:
-            processed.append(f"<p>{p}</p>")
-
-    return "\n\n".join(processed)
-
-
-# =============================================================================
 # Table of Contents
 # =============================================================================
 
@@ -604,11 +415,8 @@ def markdown_to_html(text: str) -> tuple[str, list[dict[str, str | int]]]:
     Returns:
         Tuple of (HTML string, list of headings).
     """
-    if HAS_MARKDOWN:
-        md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
-        html = md.convert(text)
-    else:
-        html = basic_markdown_to_html(text)
+    md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
+    html = md.convert(text)
 
     # Apply Tufte-specific conversions
     html = convert_sidenotes(html)

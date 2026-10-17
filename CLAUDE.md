@@ -86,7 +86,7 @@ Filesystem paths use `Path` objects and are centralized at the top of `build.py`
 
 ### Test coverage
 
-106 tests pass. Well-covered: frontmatter parsing, markdown conversion, Tufte extensions, template rendering, i18n, heading extraction, all build functions, and the full pipeline. Still untested: `clean()`, `serve()`, `main()` (simple wrappers with minimal logic).
+87 tests pass. Well-covered: frontmatter parsing, markdown conversion, Tufte extensions, template rendering, i18n, heading extraction, all build functions, and the full pipeline. Still untested: `clean()`, `serve()`, `main()` (simple wrappers with minimal logic).
 
 ### Frontend
 
