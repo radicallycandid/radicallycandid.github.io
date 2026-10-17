@@ -2,7 +2,8 @@
  * Language preference persistence.
  *
  * When the user clicks the language toggle (an <a> tag), we save their
- * explicit choice to localStorage so the root redirect page can use it.
+ * explicit choice to localStorage so the root page (output/index.html) can
+ * redirect returning English readers.
  * The actual navigation happens via the href — this script only persists
  * the preference.
  *

@@ -2,12 +2,12 @@
 title: "Como este site funciona"
 date: 2026-03-03
 draft: true
-excerpt: Um gerador de sites estático customizado em 1.300 linhas de Python. Uma dependência, quatro templates, e um pipeline de build que transforma Markdown num site bilíngue.
+excerpt: Um gerador de sites estático customizado em 1.150 linhas de Python. Uma dependência, quatro templates, e um pipeline de build que transforma Markdown num site bilíngue.
 ---
 
 ## Um gerador de sites estático
 
-Este site roda sobre um gerador de sites estático customizado: um único script Python chamado `build.py`, com cerca de 1.300 linhas. Ele tem uma dependência de runtime (`markdown`) e três comandos: `python build.py` para gerar o site, `python build.py serve` para iniciar um servidor local, e `python build.py clean` para limpar o diretório de saída.
+Este site roda sobre um gerador de sites estático customizado: um único script Python chamado `build.py`, com cerca de 1.150 linhas. Ele tem uma dependência de runtime (`markdown`) e três comandos: `python build.py` para gerar o site, `python build.py serve` para iniciar um servidor local, e `python build.py clean` para limpar o diretório de saída.
 
 O conceito é o mesmo do Hugo, Jekyll ou Eleventy: pegar arquivos de texto, interpretar seus metadados, converter para HTML, envolvê-los em templates e gravar o resultado como arquivos estáticos. A diferença é o escopo. Hugo é um binário em Go com sistema de plugins, ecossistema de temas, taxonomias e centenas de opções de configuração. Jekyll precisa de Ruby e uma cadeia de dependências de gems. Aqui é um script único com exatamente as funcionalidades que um site precisa, nada mais.{mn}Os motores de template também diferem. Hugo usa Go templates, Jekyll usa Liquid, Eleventy usa Nunjucks. Este site usa um motor caseiro que suporta dois construtos: substituição de variáveis e blocos condicionais/de loop.{/mn}
 
@@ -23,7 +23,7 @@ O conteúdo é escrito em `posts/` e `pages/`, dividido por idioma nos subdiret�
 
 ## O pipeline de build
 
-Para cada idioma, o `build.py` executa uma sequência de transformações em cada arquivo Markdown: interpreta o frontmatter, converte Markdown para HTML, aplica as extensões Tufte, extrai cabeçalhos para o índice de conteúdo, e depois renderiza o resultado em duas passagens de template (template de conteúdo primeiro, template base depois). Depois que todos os posts e páginas são gerados, ele monta a homepage, o feed Atom, copia os assets estáticos e cria uma página de redirecionamento na raiz.
+Para cada idioma, o `build.py` executa uma sequência de transformações em cada arquivo Markdown: interpreta o frontmatter, converte Markdown para HTML (já com as extensões Tufte), extrai cabeçalhos para o índice de conteúdo, e depois renderiza o resultado em duas passagens de template (template de conteúdo primeiro, template base depois). Depois que todos os posts e páginas são gerados, ele monta a homepage, o feed Atom, copia os assets estáticos e grava a página da raiz.
 
 O diagrama abaixo mostra essas etapas de processamento em detalhe. Clique em qualquer etapa para ver uma transformação concreta de antes e depois.
 
@@ -45,7 +45,7 @@ excerpt: Um gerador de sites estático customizado...
 O conteúdo real aqui.
 ```
 
-O script de build interpreta isso dividindo pelas cercas `---`, extraindo pares de chave e valor, e depois passando o corpo para a biblioteca `markdown` do Python com extensões de blocos de código, tabelas e índice de conteúdo habilitadas.{mn}Existe um conversor de fallback completo embutido no script para quando a biblioteca não está instalada. Ele lida com cabeçalhos, negrito, itálico, blocos de código, links, listas e tabelas. Desnecessário na prática, mas significa que o gerador tem zero dependências obrigatórias.{/mn} O resultado é HTML padrão, que então passa por três transformações específicas do Tufte.
+O script de build interpreta isso dividindo pelas cercas `---`, extraindo pares de chave e valor, e depois passando o corpo para a biblioteca `markdown` do Python com extensões de blocos de código, tabelas, índice de conteúdo e uma pequena extensão Tufte habilitadas.{mn}O script tinha um conversor de fallback próprio para quando a biblioteca não estivesse instalada. Nunca fez falta na prática, então saiu, e o `markdown` agora é dependência obrigatória.{/mn} O resultado é HTML padrão, com as três construções do Tufte já convertidas.
 
 ## Extensões Tufte
 
@@ -57,7 +57,7 @@ O Tufte CSS traduz os princípios de design informacional de Edward Tufte para a
 
 **New thoughts** (`{nt}...{/nt}`) renderizam como texto em versalete (small caps), a convenção do Tufte para iniciar uma nova seção dentro de um capítulo.
 
-Por baixo dos panos, são substituições via regex que rodam depois da conversão de Markdown para HTML. Uma sidenote vira um `<label>`, um `<input>` checkbox (para toggle no mobile) e um `<span>`. O truque do checkbox significa que sidenotes funcionam no celular sem nenhum JavaScript: toque no número para mostrar ou esconder a nota.
+Por baixo dos panos, elas são uma extensão do Python-Markdown: um padrão inline que roda durante a conversão, depois que trechos e blocos de código já foram separados, então um `{sn}` dentro de código fica literal. Uma sidenote vira um `<label>`, um `<input>` checkbox (para toggle no mobile) e um `<span>`. O truque do checkbox significa que sidenotes funcionam no celular sem nenhum JavaScript: toque no número para mostrar ou esconder a nota.
 
 ## O motor de templates
 
@@ -67,7 +67,7 @@ Em vez de puxar Jinja2 ou Mako, o gerador usa um motor de templates caseiro. Ele
 
 **Blocos**: `{{#key}}...{{/key}}` funciona tanto como condicional (renderiza a seção se `key` for verdadeiro) quanto como loop (se `key` for uma lista, renderiza o conteúdo interno uma vez por item).
 
-Essa é a API inteira. Quatro templates definem o site: `base.html` (33 linhas, a estrutura do site com header, nav e meta tags), `post.html` (19 linhas), `page.html` (15 linhas) e `index.html` (20 linhas). A renderização tem duas passagens: o template de conteúdo roda primeiro (ex: `post.html` preenche título, data e corpo), depois o resultado é envolvido pelo `base.html`.{mn}O trade-off é real: não tem escape de HTML, não tem aninhamento de blocos do mesmo tipo. Ambos são aceitáveis aqui porque todo o conteúdo é controlado pelo autor e nenhum template de fato aninha blocos.{/mn}
+Essa é a API inteira. Quatro templates definem o site: `base.html` (30 linhas, a estrutura do site com header, nav e meta tags), `post.html` (19 linhas), `page.html` (15 linhas) e `index.html` (20 linhas). A renderização tem duas passagens: o template de conteúdo roda primeiro (ex: `post.html` preenche título, data e corpo), depois o resultado é envolvido pelo `base.html`.{mn}O trade-off é real: não tem escape de HTML, não tem aninhamento de blocos do mesmo tipo. Ambos são aceitáveis aqui porque todo o conteúdo é controlado pelo autor e nenhum template de fato aninha blocos. A renderização é feita numa passada só, então um `{{` dentro do corpo de um post nunca vira placeholder, e um placeholder que falta no contexto interrompe o build em vez de sair em branco.{/mn}
 
 ## Arquitetura bilíngue
 
@@ -80,13 +80,13 @@ posts/pt/how-this-site-works.md
 
 O script de build encontra pares de conteúdo comparando nomes de arquivo entre os diretórios de cada idioma. Se um post existe tanto em `en/` quanto em `pt/`, o gerador adiciona um seletor de idioma (o ícone de bandeira no header) que linka diretamente para a outra versão.
 
-O `index.html` da raiz é um redirect. Ele verifica o `localStorage` para uma escolha anterior de idioma, depois consulta `navigator.language`, e por último usa inglês como padrão. Nenhuma lógica server-side necessária.{mn}Isso significa que visitantes recorrentes vão direto para seu idioma sem um flash da versão errada. Visitantes do Brasil recebem português automaticamente na primeira visita.{/mn}
+O `index.html` da raiz é a própria homepage em português. Um pequeno script no `<head>` verifica o `localStorage` atrás de uma escolha anterior de idioma, depois consulta `navigator.language`, e só manda o visitante para `/en/` se um dos dois indicar inglês. Nenhuma lógica server-side necessária.{mn}Quem lê em português cai na homepage sem nenhum redirecionamento, e o mesmo vale para quem está sem JavaScript e para os previews de link. Quem já escolheu inglês é redirecionado antes de a página aparecer.{/mn}
 
 ## O frontend
 
 ### Velocidade
 
-O site carrega três arquivos CSS (Tufte base, customizações, e declarações da fonte ET Book) e três pequenos arquivos JavaScript (toggle de tema, preferência de idioma, índice de conteúdo). Sem requests externos para renderização. Sem CDN. Sem analytics.{mn}A ET Book é hospedada localmente em `static/css/et-book/`. O conjunto completo da fonte tem cerca de 300KB, mas os navegadores só baixam os pesos efetivamente usados.{/mn}
+O site carrega dois arquivos CSS (o Tufte base, que também declara as fontes, e as customizações) e até três pequenos arquivos JavaScript (toggle de tema, preferência de idioma e, nos posts que têm, o índice de conteúdo). Sem requests externos. Sem CDN. Sem analytics.{mn}A ET Book e a Source Code Pro são hospedadas localmente em `static/css/`. As quatro variações da ET Book somam cerca de 150KB em WOFF2, e os navegadores só baixam as que a página de fato usa.{/mn}
 
 As páginas são HTML estático servido pelo GitHub Pages. Não tem o que ser lento.
 
@@ -100,7 +100,7 @@ Posts com três ou mais cabeçalhos ganham um índice. Em telas largas (1440px+)
 
 ### Visualizações interativas
 
-As visualizações em D3.js (como os diagramas acima) são arquivos HTML autocontidos em `static/embeds/`. Cada um funciona tanto standalone quanto embutido via iframe. Quando carregados com `?embed` na URL, eles escondem seu próprio chrome (toggle de tema, instruções) e escutam eventos `postMessage` da página pai para sincronizar o tema de cores.
+As visualizações em D3.js (como os diagramas acima) são arquivos HTML autocontidos em `static/embeds/`, um arquivo por visualização para os dois idiomas, com o D3 servido pelo próprio site. Cada um funciona tanto standalone quanto embutido via iframe. O `?lang=en` ou `?lang=pt` na URL escolhe o idioma. Com `?embed`, eles escondem seu próprio chrome (toggle de tema, instruções) e acompanham o tema da página pai pelo evento `storage` do navegador: o toggle grava no `localStorage`, e os iframes da mesma origem ficam sabendo.
 
 ## Rascunhos
 
