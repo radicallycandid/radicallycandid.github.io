@@ -16,20 +16,8 @@ The concept is the same as Hugo, Jekyll, or Eleventy: take text files, parse the
 The diagram below shows how source files map through `build.py` to the final output. Hover over any node to trace its connections.
 
 <div class="graph-embed" style="height: 650px;">
-  <iframe src="/static/embeds/repo-architecture-en.html?embed" title="Repository architecture visualization"></iframe>
+  <iframe src="/static/embeds/repo-architecture.html?embed&amp;lang=en" title="Repository architecture visualization"></iframe>
 </div>
-<script>
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe[src*="repo-architecture"]');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 Content is authored in `posts/` and `pages/`, split by language into `en/` and `pt/` subdirectories. Templates define the HTML structure. Static assets (CSS, JavaScript, fonts, interactive embeds) pass through untouched. The `output/` directory is ephemeral and gitignored.
 
@@ -40,20 +28,8 @@ For each language, `build.py` runs a sequence of transformations on every Markdo
 The diagram below shows these processing stages in detail. Click any step to see a concrete before-and-after transformation.
 
 <div class="graph-embed" style="height: 650px;">
-  <iframe src="/static/embeds/build-pipeline-en.html?embed" title="Build pipeline visualization"></iframe>
+  <iframe src="/static/embeds/build-pipeline.html?embed&amp;lang=en" title="Build pipeline visualization"></iframe>
 </div>
-<script>
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe[src*="build-pipeline"]');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 ## Content and Frontmatter
 

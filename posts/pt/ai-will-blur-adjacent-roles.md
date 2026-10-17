@@ -31,21 +31,8 @@ Vamos considerar alguns papéis diferentes que existem em uma organização mode
 O grafo a seguir mostra papéis comuns e suas adjacências mais relevantes na minha opinião. Ele é propositalmente simples e não exaustivo, priorizando o uso no argumento que vem a seguir.{sn}Por exemplo, o grafo não inclui Site Reliability Engineer (SRE), que seria um nó conectado ao de SW Engineer (Back End), nem o papel emergente e cada vez mais relevante de AI Engineer, que poderia se conectar tanto ao de Data Scientist quanto ao de SW Engineer (Back End).{/sn} A inclusão de vários papéis ligados a Dados (Data Platform Engineer, Analytics Engineer, Data Scientist, Business Analyst) tem a ver com a minha bagagem pessoal e também com o fato de que a conversa com um amigo que inspirou este texto começou justamente questionando esses papéis como existem hoje.
 
 <div class="graph-embed">
-  <iframe src="/static/embeds/professions-graph-pt.html?embed" title="Grafo de adjacência de profissões"></iframe>
+  <iframe src="/static/embeds/professions-graph.html?embed&amp;lang=pt" title="Grafo de adjacência de profissões"></iframe>
 </div>
-<script>
-// Sync theme changes with embedded graph
-(function() {
-  var iframe = document.querySelector('.graph-embed iframe');
-  var observer = new MutationObserver(function() {
-    var theme = document.documentElement.getAttribute('data-theme');
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'theme-change', theme: theme }, '*');
-    }
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-})();
-</script>
 
 Minha tese é simples: a IA vai gradualmente diluir as fronteiras entre papéis adjacentes nesse grafo, sem eliminar os papéis em si.{sn}A IA também tem o efeito de comprimir a profundidade necessária para cada especialidade, não só as barreiras entre elas. Mas essa compressão é assimétrica, porque os agentes automatizam a execução muito mais que substituem julgamento. É nesse julgamento de saber o que (não) construir e o que está errado mesmo parecendo certo que a diferença entre os papéis realmente mora.{/sn} A diluição vai acontecer ao longo das arestas, não em todos os lugares ao mesmo tempo. Uma Product Designer vai achar mais fácil assumir trabalhos de Software Engineering ligados a front end. Uma Analytics Engineer vai absorver parte do que Business Analysts fazem hoje, ou vice-versa. Por outro lado, não prevejo a ascensão de profissionais que fazem, ao mesmo tempo, uma grande coleção de papéis distantes nesse grafo.
 

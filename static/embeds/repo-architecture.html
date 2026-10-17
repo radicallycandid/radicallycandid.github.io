@@ -7,15 +7,21 @@
 <link href="/static/css/embed-fonts.css" rel="stylesheet">
 <script src="/static/js/theme.js"></script>
 <script>
-const isEmbed = new URLSearchParams(window.location.search).has('embed');
+// ?embed hides standalone chrome; ?lang=pt|en picks the strings (default en).
+const params = new URLSearchParams(window.location.search);
+const isEmbed = params.has('embed');
+const LANG = params.get('lang') === 'pt' ? 'pt' : 'en';
+document.documentElement.lang = LANG;
 if (isEmbed) {
   document.documentElement.classList.add('embed');
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'theme-change') {
-      document.documentElement.setAttribute('data-theme', e.data.theme);
-    }
-  });
 }
+// Theme sync: when the parent page (same origin) toggles the theme, theme.js
+// writes localStorage, which fires a storage event in this frame.
+window.addEventListener('storage', function(e) {
+  if (e.key === 'theme-preference' && e.newValue) {
+    document.documentElement.setAttribute('data-theme', e.newValue);
+  }
+});
 </script>
 <style>
   :root {
@@ -150,11 +156,9 @@ if (isEmbed) {
 
 <div class="tooltip" id="tooltip"></div>
 
-<div class="instructions" id="instructions">
-  Hover over any node to trace its connections
-</div>
+<div class="instructions" id="instructions"></div>
 
-<button class="center-btn" onclick="centerGraph()">Center</button>
+<button class="center-btn" id="center-btn" onclick="centerGraph()"></button>
 
 <script src="/static/vendor/d3-7.9.0.min.js"></script>
 <script>
@@ -163,49 +167,96 @@ const NW = 160, NH = 30, NR = 6;
 
 const nodes = [
   // Sources
-  { id: 'posts-en',  type: 'source', label: 'posts/en/*.md',     x: 120, y: 80,
-    desc: 'English blog posts. Each has YAML frontmatter (title, date, excerpt) and a Markdown body.' },
-  { id: 'posts-pt',  type: 'source', label: 'posts/pt/*.md',     x: 120, y: 130,
-    desc: 'Portuguese blog posts. Paired with English posts by matching filename slugs.' },
-  { id: 'templates', type: 'source', label: 'templates/',         x: 120, y: 230,
-    desc: 'Four HTML templates: base.html (site shell), post.html, page.html, and index.html. Used by build_post and build_index to structure output.' },
-  { id: 'pages-en',  type: 'source', label: 'pages/en/about.md', x: 120, y: 340,
-    desc: 'English about page. Its rendered content is inlined into the homepage by build_index.' },
-  { id: 'pages-pt',  type: 'source', label: 'pages/pt/about.md', x: 120, y: 390,
-    desc: 'Portuguese about page. Inlined into the Portuguese homepage.' },
-  { id: 'static',    type: 'source', label: 'static/',            x: 120, y: 490,
-    desc: 'CSS (Tufte + custom theme), JavaScript (theme toggle, language, TOC), ET Book fonts, and D3.js interactive embeds.' },
+  { id: 'posts-en',  type: 'source', label: 'posts/en/*.md',     x: 120, y: 80 },
+  { id: 'posts-pt',  type: 'source', label: 'posts/pt/*.md',     x: 120, y: 130 },
+  { id: 'templates', type: 'source', label: 'templates/',         x: 120, y: 230 },
+  { id: 'pages-en',  type: 'source', label: 'pages/en/about.md', x: 120, y: 340 },
+  { id: 'pages-pt',  type: 'source', label: 'pages/pt/about.md', x: 120, y: 390 },
+  { id: 'static',    type: 'source', label: 'static/',            x: 120, y: 490 },
 
   // Build functions
-  { id: 'build-post',    type: 'process', label: 'build_post()',    x: 460, y: 230,
-    desc: 'For each post: parse frontmatter, convert Markdown to HTML, apply Tufte extensions (sidenotes, margin notes), extract headings for TOC, render through post.html then base.html.' },
-  { id: 'build-index',   type: 'process', label: 'build_index()',   x: 460, y: 365,
-    desc: 'Build the homepage: inline about page content, list non-draft posts sorted by date (newest first), render through index.html then base.html.' },
-  { id: 'build-feed',    type: 'process', label: 'build_feed()',    x: 460, y: 450,
-    desc: 'Generate an Atom XML feed with the 20 most recent non-draft posts. Used by RSS readers.' },
-  { id: 'copy-static',   type: 'process', label: 'copy_static()',   x: 460, y: 490,
-    desc: 'Copy the entire static/ directory to output/static/ without any modification.' },
-  { id: 'root-redirect', type: 'process', label: 'root_redirect()', x: 460, y: 550,
-    desc: 'Generate a root index.html that detects visitor language via localStorage, then navigator.language, and redirects to en/ or pt/.' },
+  { id: 'build-post',    type: 'process', label: 'build_post()',    x: 460, y: 230 },
+  { id: 'build-index',   type: 'process', label: 'build_index()',   x: 460, y: 365 },
+  { id: 'build-feed',    type: 'process', label: 'build_feed()',    x: 460, y: 450 },
+  { id: 'copy-static',   type: 'process', label: 'copy_static()',   x: 460, y: 490 },
+  { id: 'root-redirect', type: 'process', label: 'root_redirect()', x: 460, y: 550 },
 
   // Outputs
-  { id: 'out-posts-en',  type: 'output', label: 'en/posts/*.html', x: 800, y: 200,
-    desc: 'Rendered English blog posts. Each has Tufte sidenotes, optional TOC sidebar, and a language toggle linking to the Portuguese version.' },
-  { id: 'out-posts-pt',  type: 'output', label: 'pt/posts/*.html', x: 800, y: 260,
-    desc: 'Rendered Portuguese blog posts. Same structure, with the language toggle linking back to English.' },
-  { id: 'out-index-en',  type: 'output', label: 'en/index.html',   x: 800, y: 340,
-    desc: 'English homepage. About section at the top, followed by blog posts listed newest first (drafts excluded).' },
-  { id: 'out-index-pt',  type: 'output', label: 'pt/index.html',   x: 800, y: 390,
-    desc: 'Portuguese homepage. Same layout with translated content.' },
-  { id: 'out-feed-en',   type: 'output', label: 'en/feed.xml',     x: 800, y: 435,
-    desc: 'Atom feed for English posts. Up to 20 most recent entries.' },
-  { id: 'out-feed-pt',   type: 'output', label: 'pt/feed.xml',     x: 800, y: 465,
-    desc: 'Atom feed for Portuguese posts.' },
-  { id: 'out-static',    type: 'output', label: 'output/static/',   x: 800, y: 490,
-    desc: 'CSS, JavaScript, fonts, and embeds copied unchanged from the source static/ directory.' },
-  { id: 'out-root',      type: 'output', label: 'index.html',       x: 800, y: 550,
-    desc: 'Root redirect page. Detects browser language and sends the visitor to en/ or pt/.' },
+  { id: 'out-posts-en',  type: 'output', label: 'en/posts/*.html', x: 800, y: 200 },
+  { id: 'out-posts-pt',  type: 'output', label: 'pt/posts/*.html', x: 800, y: 260 },
+  { id: 'out-index-en',  type: 'output', label: 'en/index.html',   x: 800, y: 340 },
+  { id: 'out-index-pt',  type: 'output', label: 'pt/index.html',   x: 800, y: 390 },
+  { id: 'out-feed-en',   type: 'output', label: 'en/feed.xml',     x: 800, y: 435 },
+  { id: 'out-feed-pt',   type: 'output', label: 'pt/feed.xml',     x: 800, y: 465 },
+  { id: 'out-static',    type: 'output', label: 'output/static/',   x: 800, y: 490 },
+  { id: 'out-root',      type: 'output', label: 'index.html',       x: 800, y: 550 },
 ];
+
+// --- Strings ---
+// Everything user-facing, per language. Node entries add desc to the nodes
+// above; file and function names stay untranslated.
+const STRINGS = {
+  en: {
+    title: 'Repository Architecture \u2014 vmargato.com',
+    instructions: 'Hover over any node to trace its connections',
+    center: 'Center',
+    columns: ['SOURCES', 'BUILD.PY', 'OUTPUT'],
+    nodes: {
+      'posts-en':      { desc: 'English blog posts. Each has YAML frontmatter (title, date, excerpt) and a Markdown body.' },
+      'posts-pt':      { desc: 'Portuguese blog posts. Paired with English posts by matching filename slugs.' },
+      'templates':     { desc: 'Four HTML templates: base.html (site shell), post.html, page.html, and index.html. Used by build_post and build_index to structure output.' },
+      'pages-en':      { desc: 'English about page. Its rendered content is inlined into the homepage by build_index.' },
+      'pages-pt':      { desc: 'Portuguese about page. Inlined into the Portuguese homepage.' },
+      'static':        { desc: 'CSS (Tufte + custom theme), JavaScript (theme toggle, language, TOC), ET Book fonts, and D3.js interactive embeds.' },
+      'build-post':    { desc: 'For each post: parse frontmatter, convert Markdown to HTML, apply Tufte extensions (sidenotes, margin notes), extract headings for TOC, render through post.html then base.html.' },
+      'build-index':   { desc: 'Build the homepage: inline about page content, list non-draft posts sorted by date (newest first), render through index.html then base.html.' },
+      'build-feed':    { desc: 'Generate an Atom XML feed with the 20 most recent non-draft posts. Used by RSS readers.' },
+      'copy-static':   { desc: 'Copy the entire static/ directory to output/static/ without any modification.' },
+      'root-redirect': { desc: 'Generate a root index.html that detects visitor language via localStorage, then navigator.language, and redirects to en/ or pt/.' },
+      'out-posts-en':  { desc: 'Rendered English blog posts. Each has Tufte sidenotes, optional TOC sidebar, and a language toggle linking to the Portuguese version.' },
+      'out-posts-pt':  { desc: 'Rendered Portuguese blog posts. Same structure, with the language toggle linking back to English.' },
+      'out-index-en':  { desc: 'English homepage. About section at the top, followed by blog posts listed newest first (drafts excluded).' },
+      'out-index-pt':  { desc: 'Portuguese homepage. Same layout with translated content.' },
+      'out-feed-en':   { desc: 'Atom feed for English posts. Up to 20 most recent entries.' },
+      'out-feed-pt':   { desc: 'Atom feed for Portuguese posts.' },
+      'out-static':    { desc: 'CSS, JavaScript, fonts, and embeds copied unchanged from the source static/ directory.' },
+      'out-root':      { desc: 'Root redirect page. Detects browser language and sends the visitor to en/ or pt/.' },
+    },
+  },
+  pt: {
+    title: 'Arquitetura do Reposit\u00f3rio \u2014 vmargato.com',
+    instructions: 'Passe o mouse sobre qualquer n\u00f3 para rastrear suas conex\u00f5es',
+    center: 'Centralizar',
+    columns: ['FONTES', 'BUILD.PY', 'SA\u00cdDA'],
+    nodes: {
+      'posts-en':      { desc: 'Posts em ingl\u00eas. Cada um tem frontmatter YAML (title, date, excerpt) e corpo em Markdown.' },
+      'posts-pt':      { desc: 'Posts em portugu\u00eas. Pareados com os posts em ingl\u00eas pelo slug do nome de arquivo.' },
+      'templates':     { desc: 'Quatro templates HTML: base.html (estrutura do site), post.html, page.html e index.html. Usados por build_post e build_index para estruturar a sa\u00edda.' },
+      'pages-en':      { desc: 'P\u00e1gina sobre em ingl\u00eas. Seu conte\u00fado renderizado \u00e9 inserido na homepage pelo build_index.' },
+      'pages-pt':      { desc: 'P\u00e1gina sobre em portugu\u00eas. Inserida na homepage em portugu\u00eas.' },
+      'static':        { desc: 'CSS (Tufte + tema customizado), JavaScript (toggle de tema, idioma, \u00edndice), fontes ET Book e embeds interativos em D3.js.' },
+      'build-post':    { desc: 'Para cada post: interpreta frontmatter, converte Markdown para HTML, aplica extens\u00f5es Tufte (sidenotes, margin notes), extrai cabe\u00e7alhos para o \u00edndice, renderiza por post.html e depois base.html.' },
+      'build-index':   { desc: 'Constr\u00f3i a homepage: insere conte\u00fado da p\u00e1gina sobre, lista posts n\u00e3o-rascunho em ordem cronol\u00f3gica decrescente, renderiza por index.html e base.html.' },
+      'build-feed':    { desc: 'Gera um feed Atom XML com os 20 posts mais recentes (excluindo rascunhos). Usado por leitores RSS.' },
+      'copy-static':   { desc: 'Copia o diret\u00f3rio static/ inteiro para output/static/ sem nenhuma modifica\u00e7\u00e3o.' },
+      'root-redirect': { desc: 'Gera um index.html raiz que detecta o idioma do visitante via localStorage, depois navigator.language, e redireciona para en/ ou pt/.' },
+      'out-posts-en':  { desc: 'Posts renderizados em ingl\u00eas. Cada um com sidenotes Tufte, sidebar de \u00edndice opcional e toggle de idioma para a vers\u00e3o em portugu\u00eas.' },
+      'out-posts-pt':  { desc: 'Posts renderizados em portugu\u00eas. Mesma estrutura, com toggle de idioma para a vers\u00e3o em ingl\u00eas.' },
+      'out-index-en':  { desc: 'Homepage em ingl\u00eas. Se\u00e7\u00e3o sobre no topo, seguida da listagem de posts do mais recente ao mais antigo.' },
+      'out-index-pt':  { desc: 'Homepage em portugu\u00eas. Mesmo layout com conte\u00fado traduzido.' },
+      'out-feed-en':   { desc: 'Feed Atom para posts em ingl\u00eas. At\u00e9 20 entradas mais recentes.' },
+      'out-feed-pt':   { desc: 'Feed Atom para posts em portugu\u00eas.' },
+      'out-static':    { desc: 'CSS, JavaScript, fontes e embeds copiados sem altera\u00e7\u00e3o do diret\u00f3rio static/ original.' },
+      'out-root':      { desc: 'P\u00e1gina de redirecionamento raiz. Detecta o idioma do navegador e envia o visitante para en/ ou pt/.' },
+    },
+  },
+};
+
+const T = STRINGS[LANG];
+document.title = T.title;
+document.getElementById('instructions').textContent = T.instructions;
+document.getElementById('center-btn').textContent = T.center;
+nodes.forEach(n => Object.assign(n, T.nodes[n.id]));
 
 const nodeMap = {};
 nodes.forEach(n => nodeMap[n.id] = n);
@@ -278,9 +329,9 @@ svg.call(zoom);
 
 // --- Column headers ---
 const headers = [
-  { label: 'SOURCES', x: 120, y: 35 },
-  { label: 'BUILD.PY', x: 460, y: 35 },
-  { label: 'OUTPUT', x: 800, y: 35 },
+  { label: T.columns[0], x: 120, y: 35 },
+  { label: T.columns[1], x: 460, y: 35 },
+  { label: T.columns[2], x: 800, y: 35 },
 ];
 
 g.selectAll(".col-header")
